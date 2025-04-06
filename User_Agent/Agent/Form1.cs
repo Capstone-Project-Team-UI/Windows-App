@@ -80,6 +80,53 @@ namespace DeviceInfoApp
             }
         }
 
+        //Temp cus Register not workin
+        private async void btnSendProvisioningTask_Click(object sender, EventArgs e)
+        {
+            txtCommandOutput.AppendText("📤 Sending provisioning request task to SQS...\r\n");
+
+            string serialNumber = txtSerial.Text;
+            string userID = "test";
+            string deviceID = serialNumber; // for now same as serial
+            string uniqueID = ApiHelper.GenerateSHA256Hash(serialNumber);
+
+            var taskPayload = new
+            {
+                task = "Request Provisioning",
+                priority = "high",
+                s3_bucket_url = "N/A",
+                device_id = deviceID,
+                unique_id = uniqueID
+            };
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string json = JsonConvert.SerializeObject(taskPayload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    string apiUrl = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/";
+                    HttpResponseMessage response = await client.PostAsync(apiUrl, content);
+                    string responseBody = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        txtCommandOutput.AppendText("✅ Provisioning task sent successfully.\r\n");
+                    }
+                    else
+                    {
+                        txtCommandOutput.AppendText($"❌ Failed to send task: {responseBody}\r\n");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                txtCommandOutput.AppendText($"⚠ Error sending task: {ex.Message}\r\n");
+            }
+        }
+
+
 
 
         private void btnProvisioning_Click(object sender, EventArgs e)
@@ -100,7 +147,7 @@ namespace DeviceInfoApp
             {
                 MessageBox.Show($"Error fetching serial number: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
-            }
+            } 
             
             // Actual serial logic
 
