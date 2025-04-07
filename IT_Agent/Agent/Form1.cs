@@ -4,108 +4,97 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Newtonsoft.Json.Linq;
 
 namespace Agent
 {
     public partial class Form1 : Form
     {
-        private const string SqsGetUrl = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/get-tasks";
-        private const string SqsPostUrl = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/";
+        private const string getTasksEndpoint = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/get-tasks";
+        private const string hardcodedProvisioningPath = @"C:\ProvisioningTemplate";
 
         public Form1()
         {
             InitializeComponent();
-            txtLog.ReadOnly = true;
         }
 
         private async void btnFetchTasks_Click(object sender, EventArgs e)
         {
-            lstRegistered.Items.Clear();
-            string uniqueId = txtUniqueId.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(uniqueId))
-            {
-                MessageBox.Show("Enter Unique ID first.");
-                return;
-            }
-
-            using var client = new HttpClient();
-            var json = JsonSerializer.Serialize(new { unique_id = uniqueId });
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            lstPending.Items.Clear();
 
             try
             {
-                var response = await client.PostAsync(SqsGetUrl, content);
-                string result = await response.Content.ReadAsStringAsync();
-                txtLog.AppendText("✅ Task Response:\n" + result + "\n");
+                string dummyUniqueID = "admin-check"; // Temporary if API requires something
+                var body = new { unique_id = dummyUniqueID };
 
-                if (result.Contains("tasks"))
+                using (HttpClient client = new HttpClient())
                 {
-                    lstRegistered.Items.Add(uniqueId);
-                }
-                else
-                {
-                    txtLog.AppendText("❌ No new tasks.\n");
+                    var content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
+                    var response = await client.PostAsync(getTasksEndpoint, content);
+                    string json = await response.Content.ReadAsStringAsync();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show($"API Error: {json}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var parsed = JObject.Parse(json);
+
+                    if (parsed["tasks"] != null && parsed["tasks"].HasValues)
+                    {
+                        foreach (var task in parsed["tasks"])
+                        {
+                            string bodyContent = task["Body"]?.ToString();
+                            lstPending.Items.Add(bodyContent); // expected to be something like userID::hash
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("📭 No tasks found in the SQS queue.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
                 }
             }
             catch (Exception ex)
             {
-                txtLog.AppendText("⚠ API Error: " + ex.Message + "\n");
+                MessageBox.Show($"Error fetching tasks: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void btnSelectProvisioning_Click(object sender, EventArgs e)
+        private void btnCreateProvisioning_Click(object sender, EventArgs e)
         {
-            if (lstRegistered.SelectedItem == null)
+            if (lstPending.SelectedItem == null)
             {
-                MessageBox.Show("Select a registered device.");
+                MessageBox.Show("Please select a device from the pending list.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (folderDialog.ShowDialog() == DialogResult.OK)
+            string selected = lstPending.SelectedItem.ToString(); // Format: userID::serialHash
+            string[] parts = selected.Split(new[] { "::" }, StringSplitOptions.None);
+            if (parts.Length != 2)
             {
-                txtSelectedFolder.Text = folderDialog.SelectedPath;
-            }
-        }
-
-        private async void btnUploadToBucket_Click(object sender, EventArgs e)
-        {
-            string selectedDevice = lstRegistered.SelectedItem?.ToString();
-            string selectedFolder = txtSelectedFolder.Text;
-
-            if (string.IsNullOrEmpty(selectedDevice) || !Directory.Exists(selectedFolder))
-            {
-                MessageBox.Show("Device or folder selection missing.");
+                MessageBox.Show("Invalid task format. Expected: userID::serialHash", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string zipPath = Path.Combine(Path.GetTempPath(), $"{selectedDevice}ProvisioningFiles.zip");
-            ZipFile.CreateFromDirectory(selectedFolder, zipPath);
+            string serialHash = parts[1];
+            string zipPath = $@"C:\ProgramData\Provisioning\{serialHash}_ProvisioningFiles.zip";
 
-            string s3Url = $"s3://bucket/path/{Path.GetFileName(zipPath)}"; // placeholder
-
-            var payload = new
+            try
             {
-                task = "UploadProvisioningFiles",
-                priority = "high",
-                s3_bucket_url = s3Url,
-                device_id = selectedDevice,
-                unique_id = selectedDevice
-            };
+                Directory.CreateDirectory(@"C:\ProgramData\Provisioning");
+                if (File.Exists(zipPath)) File.Delete(zipPath);
 
-            var json = JsonSerializer.Serialize(payload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            using var client = new HttpClient();
-            var response = await client.PostAsync(SqsPostUrl, content);
-            string result = await response.Content.ReadAsStringAsync();
-
-            txtLog.AppendText("📤 Upload result: " + result + "\n");
-            lstProvisioned.Items.Add(selectedDevice);
-            lstRegistered.Items.Remove(selectedDevice);
+                ZipFile.CreateFromDirectory(hardcodedProvisioningPath, zipPath);
+                MessageBox.Show($"✅ Provisioning file created:\n{zipPath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error creating zip: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
