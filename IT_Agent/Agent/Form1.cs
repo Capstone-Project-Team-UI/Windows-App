@@ -11,12 +11,14 @@ using Amazon;
 using Amazon.S3;
 using System.Drawing;
 using Amazon.S3.Model;
+using Newtonsoft.Json;
 
 
 
 namespace Agent
 {
     public partial class Form1 : Form
+
     {
         // Right now the keys are hardcoded, NOT RECOMMENDED TO DO THIS, you can use environmental variables later with your own bucket
 
@@ -57,49 +59,73 @@ namespace Agent
             }
         }
 
+        public class UserModel
+        {
+            public string userID { get; set; }
+            public string organization { get; set; }
+            public string serialNumber { get; set; }
+            public string uniqueID { get; set; }
+            public string emailAddress { get; set; }
+        }
+
         private async void btnFetchTasks_Click(object sender, EventArgs e)
         {
             lstPending.Items.Clear();
 
             try
             {
-                string dummyUniqueID = "admin-check"; // Temporary if API requires something
-                var body = new { unique_id = dummyUniqueID };
-
                 using (HttpClient client = new HttpClient())
                 {
-                    var content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
-                    var response = await client.PostAsync(getTasksEndpoint, content);
-                    string json = await response.Content.ReadAsStringAsync();
-
-                    if (!response.IsSuccessStatusCode)
+                    // Step 1: Get registered users
+                    string usersApi = "http://localhost:8090/users"; // your local backend endpoint
+                    var usersResp = await client.GetAsync(usersApi);
+                    string usersJson = await usersResp.Content.ReadAsStringAsync();
+                    if (!usersResp.IsSuccessStatusCode)
                     {
-                        MessageBox.Show($"API Error: {json}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("❌ Failed to fetch users.");
                         return;
                     }
 
-                    var parsed = JObject.Parse(json);
+                    var users = JsonConvert.DeserializeObject<List<UserModel>>(usersJson);
 
-                    if (parsed["tasks"] != null && parsed["tasks"].HasValues)
+                    foreach (var user in users)
                     {
-                        foreach (var task in parsed["tasks"])
+                        var taskCheckPayload = new { unique_id = user.uniqueID };
+                        string json = JsonConvert.SerializeObject(taskCheckPayload);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                        // Step 2: Check tasks for each user
+                        var taskResp = await client.PostAsync("https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/get-tasks", content);
+                        string taskJson = await taskResp.Content.ReadAsStringAsync();
+
+                        if (!taskResp.IsSuccessStatusCode) continue;
+
+                        var parsed = JObject.Parse(taskJson);
+                        if (parsed["tasks"] != null && parsed["tasks"].HasValues)
                         {
-                            string bodyContent = task["Body"]?.ToString();
-                            lstPending.Items.Add(bodyContent); // expected to be something like userID::hash
+                            foreach (var task in parsed["tasks"])
+                            {
+                                string taskType = task["Body"]?.ToString();
+                                if (taskType.Contains("Request Provisioning"))
+                                {
+                                    lstPending.Items.Add($"{user.userID}::{user.uniqueID}");
+                                }
+                            }
                         }
                     }
-                    else
-                    {
-                        MessageBox.Show("📭 No tasks found in the SQS queue.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
 
+                    if (lstPending.Items.Count == 0)
+                    {
+                        MessageBox.Show("📭 No provisioning requests found.");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error fetching tasks: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error: {ex.Message}");
             }
         }
+
 
         private async void btnCreateProvisioning_Click(object sender, EventArgs e)
         {
@@ -160,6 +186,7 @@ namespace Agent
         {
             btnCreateProvisioning.Enabled = lstPending.SelectedItem != null;
         }
+
 
 
         // 🔹  Download Default Provisioning Folder from S3
