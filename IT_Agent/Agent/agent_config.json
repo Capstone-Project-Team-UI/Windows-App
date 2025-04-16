@@ -1,0 +1,11 @@
+{
+  "api_url": "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/",
+  "users_api": "http://localhost:8090/users",
+  "s3_bucket": "testbucketawss333",
+  "aws_access_key": "AKIA2MNVL7EDOIG3UO7I",
+  "aws_secret_key": "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",
+  "aws_region": "us-west-2",
+  "object_key": "AMD Provisioning Console.zip"
+}
+
+

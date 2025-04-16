@@ -21,95 +21,116 @@ namespace Agent
 
     {
 
-        // Taskbar icons
 
+        private AgentConfig config;
+        private IAmazonS3 s3Client;
+
+        // Tray icon
         private NotifyIcon trayIcon;
         private ContextMenuStrip trayMenu;
 
-        
-        // Save provisioned device info externally to clear them from the list
-
+        // Device tracking
         private readonly string provisionedDevicesPath = @"C:\ProgramData\ITAgent\provisioned.txt";
-        private readonly HashSet<string> provisionedListHashes = new HashSet<string>();
-
-
-        // Save device info externally to neglect them once they are zipped
-
         private readonly string zippedDevicesPath = @"C:\ProgramData\ITAgent\zipped.txt";
-        private readonly HashSet<string> zippedHashes = new HashSet<string>();
+        private readonly string cacheFilePath = @"C:\ProgramData\ITAgent\lastUsedPath.txt";
 
+        private readonly HashSet<string> provisionedListHashes = new HashSet<string>();
+        private readonly HashSet<string> zippedHashes = new HashSet<string>();
         private readonly HashSet<string> seenDeviceIDs = new HashSet<string>();
 
-
         private System.Windows.Forms.Timer pollTimer;
-
-        // Right now the keys are hardcoded, NOT RECOMMENDED TO DO THIS cus security, Can use environmental variables later with your own bucket
-
-
-        private static readonly string accessKey = "AKIA2MNVL7EDOIG3UO7I"; //Access Key 
-        private static readonly string secretKey = "CJTexi2dkjqIHOwy4MIwRGkWyrZHHadN25YNVtoI"; //Secret Key
-        private static readonly RegionEndpoint region = RegionEndpoint.USWest2; // bucket region
-
-        private static readonly string bucketName = "testbucketawss333";
-        private static readonly string objectKey = "AMD Provisioning Console.zip"; // S3 file key
-
-        private static IAmazonS3 s3Client = new AmazonS3Client(accessKey, secretKey, region);
-        private const string getTasksEndpoint = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/get-tasks";
-        private const string hardcodedProvisioningPath = @"C:\ProvisioningTemplate";
-        private string downloadedFolderPath;
-
-        // To save pulled folder location for later use
-        private readonly string cacheFilePath = @"C:\ProgramData\ITAgent\lastUsedPath.txt";
         private string cachedFolderPath = "";
+        private string downloadedFolderPath = "";
 
         public Form1()
         {
             InitializeComponent();
+
+
+            // this.Icon = Properties.Resources.your_icon; // (add icon to resouces.resx)
+
+
+            // 🧠 Load config from file
+            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_config.json");
+
+            if (!File.Exists(configPath))
+            {
+                MessageBox.Show("⚠ Configuration file missing! Make sure agent_config.json exists in ProgramData.", "Missing Config", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(1);
+            }
+
+            string configJson = File.ReadAllText(configPath);
+            config = JsonConvert.DeserializeObject<AgentConfig>(configJson);
+
+            // ✅ Initialize AWS S3 client from config
+            s3Client = new AmazonS3Client(config.aws_access_key, config.aws_secret_key, RegionEndpoint.GetBySystemName(config.aws_region));
+
+            // 🔁 Start polling
             pollTimer = new System.Windows.Forms.Timer();
-            pollTimer.Interval = 10000; // 10 seconds
+            pollTimer.Interval = 10000;
             pollTimer.Tick += PollTimer_Tick;
             pollTimer.Start();
 
+            // 🧾 Load zipped + provisioned hashes
             if (File.Exists(zippedDevicesPath))
-            {
                 foreach (var line in File.ReadAllLines(zippedDevicesPath))
-                {
-                    if (!string.IsNullOrWhiteSpace(line))
-                        zippedHashes.Add(line.Trim());
-                }
-            }
+                    if (!string.IsNullOrWhiteSpace(line)) zippedHashes.Add(line.Trim());
 
             if (File.Exists(provisionedDevicesPath))
-            {
                 foreach (var line in File.ReadAllLines(provisionedDevicesPath))
-                {
-                    if (!string.IsNullOrWhiteSpace(line))
-                        provisionedListHashes.Add(line.Trim());
-                }
-            }
+                    if (!string.IsNullOrWhiteSpace(line)) provisionedListHashes.Add(line.Trim());
 
-            // Setup tray menu
+            // 🖥 Tray setup
             trayMenu = new ContextMenuStrip();
             trayMenu.Items.Add("Exit", null, OnTrayExit);
-
-            // Setup tray icon
 
             trayIcon = new NotifyIcon
             {
                 Text = "IT Agent",
-                Icon = SystemIcons.Application, // Replace with custom icon if desired
+                Icon = SystemIcons.Application,
+                // Icon = new Icon("Resources\\your_icon.ico"), // (After icon)
                 ContextMenuStrip = trayMenu,
                 Visible = true
             };
 
-            trayIcon.DoubleClick += (s, e) => {
+            trayIcon.DoubleClick += (s, e) =>
+            {
                 this.Show();
                 this.WindowState = FormWindowState.Normal;
             };
 
-
             LoadCachedPath();
+        }
 
+
+        // Easier to change company database later
+        private (string userID, string organization, string email) GetUserMetadata(UserModel user)
+        {
+            // Default logic based on API model
+            string userID = user.userID;
+            string organization = user.organization;
+            string email = user.emailAddress;
+
+            // Optional override via local file
+            string configPath = "agent_config.json";
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    var json = File.ReadAllText(configPath);
+                    dynamic config = JsonConvert.DeserializeObject(json);
+
+                    userID = config.userID ?? userID;
+                    organization = config.organization ?? organization;
+                    email = config.email ?? email;
+                }
+                catch (Exception ex)
+                {
+                    txtCommandOutput?.AppendText($"⚠ Failed to load agent_config.json: {ex.Message}\r\n");
+                }
+            }
+
+            return (userID, organization, email);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -292,13 +313,13 @@ namespace Agent
 
                 var putRequest = new PutObjectRequest
                 {
-                    BucketName = bucketName,
+                    BucketName = config.s3_bucket,
                     Key = $"users/{zipFileName}",
                     FilePath = zipPath,
                     ContentType = "application/zip"
                 };
 
-                using (var s3 = new AmazonS3Client(accessKey, secretKey, region))
+                using (var s3 = new AmazonS3Client(config.aws_access_key, config.aws_secret_key, RegionEndpoint.GetBySystemName(config.aws_region)))
                 {
                     await s3.PutObjectAsync(putRequest);
                 }
@@ -353,8 +374,8 @@ namespace Agent
                         // Download the file from S3
                         var request = new Amazon.S3.Model.GetObjectRequest
                         {
-                            BucketName = bucketName,
-                            Key = objectKey
+                            BucketName = config.s3_bucket,
+                            Key = config.object_key
                         };
 
                         using (var response = await s3Client.GetObjectAsync(request))
@@ -500,6 +521,19 @@ namespace Agent
             public string uniqueID { get; set; }
             public string emailAddress { get; set; }
         }
+
+        // config class
+        public class AgentConfig
+        {
+            public string api_url { get; set; }
+            public string users_api { get; set; }
+            public string s3_bucket { get; set; }
+            public string aws_access_key { get; set; }
+            public string aws_secret_key { get; set; }
+            public string aws_region { get; set; }
+            public string object_key { get; set; }
+        }
+
 
 
 

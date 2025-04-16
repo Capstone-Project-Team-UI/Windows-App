@@ -1,0 +1,9 @@
+To set the icon used by the .exe file:
+
+1. In Solution Explorer, right-click your project > Properties
+
+2. Go to the Application tab
+
+3. Under Resources, choose Icon and manifest
+
+4. Browse and select your .ico file
