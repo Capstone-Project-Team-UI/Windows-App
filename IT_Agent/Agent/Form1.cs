@@ -15,28 +15,35 @@ using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 
 
-
-
-
-
-
 namespace Agent
 {
     public partial class Form1 : Form
 
     {
 
-        // Save device info externally to neglect them once they are zipped
+        // Taskbar icons
+
+        private NotifyIcon trayIcon;
+        private ContextMenuStrip trayMenu;
+
+        
+        // Save provisioned device info externally to clear them from the list
 
         private readonly string provisionedDevicesPath = @"C:\ProgramData\ITAgent\provisioned.txt";
-        private readonly HashSet<string> provisionedHashes = new HashSet<string>();
+        private readonly HashSet<string> provisionedListHashes = new HashSet<string>();
+
+
+        // Save device info externally to neglect them once they are zipped
+
+        private readonly string zippedDevicesPath = @"C:\ProgramData\ITAgent\zipped.txt";
+        private readonly HashSet<string> zippedHashes = new HashSet<string>();
 
         private readonly HashSet<string> seenDeviceIDs = new HashSet<string>();
 
 
         private System.Windows.Forms.Timer pollTimer;
 
-        // Right now the keys are hardcoded, NOT RECOMMENDED TO DO THIS, you can use environmental variables later with your own bucket
+        // Right now the keys are hardcoded, NOT RECOMMENDED TO DO THIS cus security, Can use environmental variables later with your own bucket
 
 
         private static readonly string accessKey = "AKIA2MNVL7EDOIG3UO7I"; //Access Key 
@@ -63,20 +70,67 @@ namespace Agent
             pollTimer.Tick += PollTimer_Tick;
             pollTimer.Start();
 
+            if (File.Exists(zippedDevicesPath))
+            {
+                foreach (var line in File.ReadAllLines(zippedDevicesPath))
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                        zippedHashes.Add(line.Trim());
+                }
+            }
+
             if (File.Exists(provisionedDevicesPath))
             {
                 foreach (var line in File.ReadAllLines(provisionedDevicesPath))
                 {
                     if (!string.IsNullOrWhiteSpace(line))
-                        provisionedHashes.Add(line.Trim());
+                        provisionedListHashes.Add(line.Trim());
                 }
             }
+
+            // Setup tray menu
+            trayMenu = new ContextMenuStrip();
+            trayMenu.Items.Add("Exit", null, OnTrayExit);
+
+            // Setup tray icon
+
+            trayIcon = new NotifyIcon
+            {
+                Text = "IT Agent",
+                Icon = SystemIcons.Application, // Replace with custom icon if desired
+                ContextMenuStrip = trayMenu,
+                Visible = true
+            };
+
+            trayIcon.DoubleClick += (s, e) => {
+                this.Show();
+                this.WindowState = FormWindowState.Normal;
+            };
 
 
             LoadCachedPath();
 
+        }
 
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true; // Cancel the close
+                this.Hide();     // Hide the window
 
+                trayIcon.BalloonTipTitle = "IT Agent";
+                trayIcon.BalloonTipText = "Minimized to taskbar";
+                trayIcon.ShowBalloonTip(3000); // Show for 3 seconds
+            }
+
+            base.OnFormClosing(e);
+        }
+
+        private void OnTrayExit(object sender, EventArgs e)
+        {
+            trayIcon.Visible = false;
+            Application.Exit();
         }
 
         private async Task RefreshPendingListAsync()
@@ -134,7 +188,7 @@ namespace Agent
 
                                     if (!string.IsNullOrWhiteSpace(deviceID) &&
                                             !seenDeviceIDs.Contains(deviceID) &&
-                                                !provisionedHashes.Contains(user.uniqueID))
+                                                !zippedHashes.Contains(user.uniqueID))
 
                                     {
                                         seenDeviceIDs.Add(deviceID);
@@ -142,11 +196,24 @@ namespace Agent
                                             lstPending.Items.Add(entry);
                                     }
                                 }
-                                else if (taskType == "Provisioned")
+                                if (taskType == "Provisioned")
                                 {
+                           
                                     if (!lstProvisioned.Items.Contains(entry))
+                                    {
                                         lstProvisioned.Items.Add(entry);
+
+                                        if (!provisionedListHashes.Contains(user.uniqueID))
+                                        {
+                                            provisionedListHashes.Add(user.uniqueID);
+
+                                            // ✅ Save full entry (userID::hash) — not just the hash
+                                            File.AppendAllLines(provisionedDevicesPath, new[] { entry });
+                                        }
+                                    }
                                 }
+
+
                             }
                             catch { continue; }
                         }
@@ -185,15 +252,6 @@ namespace Agent
             {
                 cachedFolderPath = File.ReadAllText(cacheFilePath);
             }
-        }
-
-        public class UserModel
-        {
-            public string userID { get; set; }
-            public string organization { get; set; }
-            public string serialNumber { get; set; }
-            public string uniqueID { get; set; }
-            public string emailAddress { get; set; }
         }
 
         private async void btnCreateProvisioning_Click(object sender, EventArgs e)
@@ -250,10 +308,10 @@ namespace Agent
                 // ✅ Remove from Pending list after provisioning
                 lstPending.Items.Remove(selected);
                 
-                if (!provisionedHashes.Contains(serialHash))
+                if (!zippedHashes.Contains(serialHash))
                 {
-                    provisionedHashes.Add(serialHash);
-                    File.AppendAllLines(provisionedDevicesPath, new[] { serialHash });
+                    zippedHashes.Add(serialHash);
+                    File.AppendAllLines(zippedDevicesPath, new[] { serialHash });
                 }
 
             }
@@ -379,9 +437,6 @@ namespace Agent
         }
 
 
-
-
-
         private void CopyDirectory(string sourceDir, string destDir)
         {
             Directory.CreateDirectory(destDir);
@@ -397,5 +452,56 @@ namespace Agent
                 CopyDirectory(subDir, newSubDir);
             }
         }
+
+        private void btnClearProvisioned_Click(object sender, EventArgs e)
+        {
+            lstProvisioned.Items.Clear();
+            txtCommandOutput?.AppendText("🧹 Cleared visual list of provisioned devices.\r\n");
+        }
+
+        private void btnFetchAllProvisioned_Click(object sender, EventArgs e)
+        {
+            if (File.Exists(provisionedDevicesPath))
+            {
+                var lines = File.ReadAllLines(provisionedDevicesPath);
+                lstProvisioned.Items.Clear();
+                foreach (var line in lines.Distinct())
+                {
+                    string trimmed = line.Trim();
+
+                    if (!string.IsNullOrWhiteSpace(trimmed) && !lstProvisioned.Items.Contains(trimmed))
+                    {
+                        lstProvisioned.Items.Add(trimmed);
+
+                        // ✅ Safe parsing of hash
+                        var parts = trimmed.Split(new[] { "::" }, StringSplitOptions.None);
+                        if (parts.Length == 2)
+                        {
+                            provisionedListHashes.Add(parts[1]); // only the hash part
+                        }
+                    }
+                }
+
+
+                txtCommandOutput?.AppendText("📂 Reloaded saved provisioned devices.\r\n");
+            }
+            else
+            {
+                txtCommandOutput?.AppendText("⚠ No saved file found to fetch provisioned users.\r\n");
+            }
+        }
+
+        // API Model
+        public class UserModel
+        {
+            public string userID { get; set; }
+            public string organization { get; set; }
+            public string serialNumber { get; set; }
+            public string uniqueID { get; set; }
+            public string emailAddress { get; set; }
+        }
+
+
+
     }
 }
