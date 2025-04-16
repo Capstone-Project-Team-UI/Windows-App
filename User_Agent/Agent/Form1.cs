@@ -35,7 +35,7 @@ namespace DeviceInfoApp
             string serialNumber = txtSerial.Text;
             string deviceID = serialNumber;
             string uniqueID = ApiHelper.GenerateSHA256Hash(serialNumber);
-            string userID = "test";
+            string userID = $"{Environment.UserName}@{Environment.MachineName}";
             string organization = "Company A";
             string email = "support@companya.com";
 
