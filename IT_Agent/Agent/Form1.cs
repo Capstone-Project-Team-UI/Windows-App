@@ -12,6 +12,11 @@ using Amazon.S3;
 using System.Drawing;
 using Amazon.S3.Model;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
+
+
+
+
 
 
 
@@ -20,7 +25,19 @@ namespace Agent
     public partial class Form1 : Form
 
     {
+
+        // Save device info externally to neglect them once they are zipped
+
+        private readonly string provisionedDevicesPath = @"C:\ProgramData\ITAgent\provisioned.txt";
+        private readonly HashSet<string> provisionedHashes = new HashSet<string>();
+
+        private readonly HashSet<string> seenDeviceIDs = new HashSet<string>();
+
+
+        private System.Windows.Forms.Timer pollTimer;
+
         // Right now the keys are hardcoded, NOT RECOMMENDED TO DO THIS, you can use environmental variables later with your own bucket
+
 
         private static readonly string accessKey = "AKIA2MNVL7EDOIG3UO7I"; //Access Key 
         private static readonly string secretKey = "CJTexi2dkjqIHOwy4MIwRGkWyrZHHadN25YNVtoI"; //Secret Key
@@ -41,8 +58,119 @@ namespace Agent
         public Form1()
         {
             InitializeComponent();
+            pollTimer = new System.Windows.Forms.Timer();
+            pollTimer.Interval = 10000; // 10 seconds
+            pollTimer.Tick += PollTimer_Tick;
+            pollTimer.Start();
+
+            if (File.Exists(provisionedDevicesPath))
+            {
+                foreach (var line in File.ReadAllLines(provisionedDevicesPath))
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                        provisionedHashes.Add(line.Trim());
+                }
+            }
+
+
             LoadCachedPath();
+
+
+
         }
+
+        private async Task RefreshPendingListAsync()
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string usersApi = "http://localhost:8090/users";
+                    var usersResp = await client.GetAsync(usersApi);
+                    string usersJson = await usersResp.Content.ReadAsStringAsync();
+                    if (!usersResp.IsSuccessStatusCode) return;
+
+                    var users = JsonConvert.DeserializeObject<List<UserModel>>(usersJson);
+
+                    foreach (var user in users)
+                    {
+                        var payload = new Dictionary<string, string>
+                {
+                    { "unique-id", user.uniqueID }
+                };
+
+                        var json = JsonConvert.SerializeObject(payload);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+                        var taskResp = await client.PostAsync("https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/get-tasks", content);
+                        if (!taskResp.IsSuccessStatusCode) continue;
+
+                        var outer = JObject.Parse(await taskResp.Content.ReadAsStringAsync());
+                        string innerJson = outer["body"]?.ToString();
+                        if (string.IsNullOrEmpty(innerJson)) continue;
+
+                        JObject innerParsed;
+                        try { innerParsed = JsonConvert.DeserializeObject<JObject>(innerJson); }
+                        catch { continue; }
+
+                        var tasks = innerParsed["tasks"] as JArray;
+                        if (tasks == null) continue;
+
+                        foreach (var task in tasks)
+                        {
+                            string bodyRaw = task["Body"]?.ToString();
+                            if (string.IsNullOrEmpty(bodyRaw)) continue;
+
+                            try
+                            {
+                                string unescaped = Regex.Unescape(bodyRaw.Trim('"'));
+                                JObject taskData = JsonConvert.DeserializeObject<JObject>(unescaped);
+                                string taskType = taskData["task"]?.ToString();
+                                string deviceID = taskData["device-id"]?.ToString();
+                                string entry = $"{user.userID}::{user.uniqueID}";
+
+                                if (taskType == "Request Provisioning")
+                                {
+                                    // Skip if previously zipped
+
+                                    if (!string.IsNullOrWhiteSpace(deviceID) &&
+                                            !seenDeviceIDs.Contains(deviceID) &&
+                                                !provisionedHashes.Contains(user.uniqueID))
+
+                                    {
+                                        seenDeviceIDs.Add(deviceID);
+                                        if (!lstPending.Items.Contains(entry))
+                                            lstPending.Items.Add(entry);
+                                    }
+                                }
+                                else if (taskType == "Provisioned")
+                                {
+                                    if (!lstProvisioned.Items.Contains(entry))
+                                        lstProvisioned.Items.Add(entry);
+                                }
+                            }
+                            catch { continue; }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"📡 Refresh error: {ex.Message}");
+            }
+        }
+
+
+        private async void PollTimer_Tick(object sender, EventArgs e)
+        {
+            await RefreshPendingListAsync();
+        }
+
+        private async void btnFetchTasks_Click(object sender, EventArgs e)
+        {
+            await RefreshPendingListAsync();
+        }
+
+
 
         private void SaveCachedPath(string path)
         {
@@ -67,65 +195,6 @@ namespace Agent
             public string uniqueID { get; set; }
             public string emailAddress { get; set; }
         }
-
-        private async void btnFetchTasks_Click(object sender, EventArgs e)
-        {
-            lstPending.Items.Clear();
-
-            try
-            {
-                using (HttpClient client = new HttpClient())
-                {
-                    // Step 1: Get registered users
-                    string usersApi = "http://localhost:8090/users"; // your local backend endpoint
-                    var usersResp = await client.GetAsync(usersApi);
-                    string usersJson = await usersResp.Content.ReadAsStringAsync();
-                    if (!usersResp.IsSuccessStatusCode)
-                    {
-                        MessageBox.Show("❌ Failed to fetch users.");
-                        return;
-                    }
-
-                    var users = JsonConvert.DeserializeObject<List<UserModel>>(usersJson);
-
-                    foreach (var user in users)
-                    {
-                        var taskCheckPayload = new { unique_id = user.uniqueID };
-                        string json = JsonConvert.SerializeObject(taskCheckPayload);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                        // Step 2: Check tasks for each user
-                        var taskResp = await client.PostAsync("https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/get-tasks", content);
-                        string taskJson = await taskResp.Content.ReadAsStringAsync();
-
-                        if (!taskResp.IsSuccessStatusCode) continue;
-
-                        var parsed = JObject.Parse(taskJson);
-                        if (parsed["tasks"] != null && parsed["tasks"].HasValues)
-                        {
-                            foreach (var task in parsed["tasks"])
-                            {
-                                string taskType = task["Body"]?.ToString();
-                                if (taskType.Contains("Request Provisioning"))
-                                {
-                                    lstPending.Items.Add($"{user.userID}::{user.uniqueID}");
-                                }
-                            }
-                        }
-                    }
-
-                    if (lstPending.Items.Count == 0)
-                    {
-                        MessageBox.Show("📭 No provisioning requests found.");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error: {ex.Message}");
-            }
-        }
-
 
         private async void btnCreateProvisioning_Click(object sender, EventArgs e)
         {
@@ -163,23 +232,42 @@ namespace Agent
 
                 MessageBox.Show($"✅ Zip created: {zipPath}", "Zipped Successfully", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // Upload to S3 under users/
-                var putRequest = new Amazon.S3.Model.PutObjectRequest
+                var putRequest = new PutObjectRequest
                 {
-                    BucketName = "your-bucket-name", // Replace this
+                    BucketName = bucketName,
                     Key = $"users/{zipFileName}",
                     FilePath = zipPath,
                     ContentType = "application/zip"
                 };
 
-                var response = await s3Client.PutObjectAsync(putRequest);
+                using (var s3 = new AmazonS3Client(accessKey, secretKey, region))
+                {
+                    await s3.PutObjectAsync(putRequest);
+                }
+
                 MessageBox.Show($"✅ Zip uploaded to S3:\nusers/{zipFileName}", "Upload Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // ✅ Remove from Pending list after provisioning
+                lstPending.Items.Remove(selected);
+                
+                if (!provisionedHashes.Contains(serialHash))
+                {
+                    provisionedHashes.Add(serialHash);
+                    File.AppendAllLines(provisionedDevicesPath, new[] { serialHash });
+                }
+
+            }
+            catch (AmazonS3Exception s3Ex)
+            {
+                MessageBox.Show($"❌ AWS S3 Error:\n{s3Ex.Message}", "S3 Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"❌ Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"❌ General Error:\n{ex.Message}", "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+
 
         // Create zip should be greyed out until user selected
         private void lstPending_SelectedIndexChanged(object sender, EventArgs e)
@@ -247,34 +335,49 @@ namespace Agent
                 return;
             }
 
+            if (lstPending.SelectedItem == null)
+            {
+                MessageBox.Show("⚠ Please select a user from the pending list first.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selected = lstPending.SelectedItem.ToString(); // Format: userID::serialHash
+            string[] parts = selected.Split(new[] { "::" }, StringSplitOptions.None);
+            if (parts.Length != 2)
+            {
+                MessageBox.Show("Invalid format for selected user. Expected 'userID::serialHash'.", "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string userHash = parts[1];
+
             string packagesPath = Path.Combine(cachedFolderPath, "Packages");
             string defPackagePath = Path.Combine(packagesPath, "defPackage");
+            string newPackagePath = Path.Combine(packagesPath, userHash);
 
             if (!Directory.Exists(defPackagePath))
             {
-                MessageBox.Show("❌ 'defPackage' folder not found in: " + packagesPath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("❌ 'defPackage' folder not found inside Packages directory.", "Missing defPackage", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (Directory.Exists(newPackagePath))
+            {
+                MessageBox.Show($"⚠ A package named '{userHash}' already exists.", "Package Already Exists", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
-                string newFolderName = "PF5EVLV3"; // TODO: Replace with actual user hash
-                string newPackagePath = Path.Combine(packagesPath, newFolderName);
-
-                if (Directory.Exists(newPackagePath))
-                {
-                    MessageBox.Show($"⚠ A package named '{newFolderName}' already exists.", "User Already Exists", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
                 CopyDirectory(defPackagePath, newPackagePath);
-                MessageBox.Show($"✅ defPackage duplicated as: {newFolderName}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"✅ defPackage duplicated as: {userHash}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("❌ Error duplicating folder: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"❌ Error duplicating folder:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
 
 
