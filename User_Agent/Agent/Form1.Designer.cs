@@ -3,110 +3,81 @@
     partial class Form1
     {
         private System.ComponentModel.IContainer components = null;
-        private Label lblSerial;
-        private TextBox txtSerial;
-        private Label lblIP;
-        private TextBox txtIP;
-        private Button btnFetchInfo;
-        private Button btnRegister;
-        private Button btnProvisioning;
-        private TextBox txtCommandOutput;
-
-        private Button btnDownloadProvisioningFolder;
-        private Button btnFetchProvisioning;
-
+        private System.Windows.Forms.Button btnFetchInfo;
+        private System.Windows.Forms.Button btnSendProvisioningTask;
+        private System.Windows.Forms.Button btnProvisionDevice;
+        private System.Windows.Forms.TextBox txtSerial;
+        private System.Windows.Forms.TextBox txtIP;
+        private System.Windows.Forms.TextBox txtCommandOutput;
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
+            if (disposing && (components != null)) components.Dispose();
             base.Dispose(disposing);
         }
 
         private void InitializeComponent()
         {
-            this.lblSerial = new Label();
-            this.txtSerial = new TextBox();
-            this.lblIP = new Label();
-            this.txtIP = new TextBox();
-            this.btnFetchInfo = new Button();
-            this.btnRegister = new Button();
-            this.btnProvisioning = new Button();
-            this.txtCommandOutput = new TextBox();
+            this.txtSerial = new System.Windows.Forms.TextBox();
+            this.txtIP = new System.Windows.Forms.TextBox();
+            this.txtCommandOutput = new System.Windows.Forms.TextBox();
+            this.btnFetchInfo = new System.Windows.Forms.Button();
+            this.btnSendProvisioningTask = new System.Windows.Forms.Button();
+            this.btnProvisionDevice = new System.Windows.Forms.Button();
 
             this.SuspendLayout();
 
-            // 🔹 Temporary Button to Fetch from SQS
-            this.btnFetchProvisioning = new Button();
-            this.btnFetchProvisioning.Location = new System.Drawing.Point(280, 100);
-            this.btnFetchProvisioning.Size = new System.Drawing.Size(150, 30);
-            this.btnFetchProvisioning.Text = "Fetch Provisioning";
-            this.btnFetchProvisioning.Click += new System.EventHandler(this.btnFetchProvisioning_Click);
-            this.Controls.Add(this.btnFetchProvisioning);
+            // 🔹 Serial Number Input
+            this.txtSerial.Location = new System.Drawing.Point(20, 20);
+            this.txtSerial.Size = new System.Drawing.Size(280, 27);
+            this.txtSerial.PlaceholderText = "Serial Number";
 
-            // 🔹 Serial Number Label
-            this.lblSerial.AutoSize = true;
-            this.lblSerial.Location = new System.Drawing.Point(20, 20);
-            this.lblSerial.Text = "Serial Number:";
-
-            // 🔹 Serial Number TextBox
-            this.txtSerial.Location = new System.Drawing.Point(150, 20);
-            this.txtSerial.Size = new System.Drawing.Size(250, 27);
-            this.txtSerial.ReadOnly = true;
-
-            // 🔹 IP Address Label
-            this.lblIP.AutoSize = true;
-            this.lblIP.Location = new System.Drawing.Point(20, 60);
-            this.lblIP.Text = "IP Address:";
-
-            // 🔹 IP Address TextBox
-            this.txtIP.Location = new System.Drawing.Point(150, 60);
-            this.txtIP.Size = new System.Drawing.Size(250, 27);
-            this.txtIP.ReadOnly = true;
+            // 🔹 IP Address Input
+            this.txtIP.Location = new System.Drawing.Point(320, 20);
+            this.txtIP.Size = new System.Drawing.Size(280, 27);
+            this.txtIP.PlaceholderText = "IP Address";
 
             // 🔹 Fetch Info Button
-            this.btnFetchInfo.Location = new System.Drawing.Point(20, 100);
-            this.btnFetchInfo.Size = new System.Drawing.Size(120, 30);
+            this.btnFetchInfo.Location = new System.Drawing.Point(620, 18);
+            this.btnFetchInfo.Size = new System.Drawing.Size(230, 30);
             this.btnFetchInfo.Text = "Fetch Info";
             this.btnFetchInfo.Click += new System.EventHandler(this.btnFetchInfo_Click);
 
-            // 🔹 Register Button
-            this.btnRegister.Location = new System.Drawing.Point(150, 100);
-            this.btnRegister.Size = new System.Drawing.Size(120, 30);
-            this.btnRegister.Text = "Register Device";
-            this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
+            // 🔹 Request Provisioning Button
+            this.btnSendProvisioningTask.Location = new System.Drawing.Point(20, 65);
+            this.btnSendProvisioningTask.Size = new System.Drawing.Size(410, 35);
+            this.btnSendProvisioningTask.Text = "Register/Request Provisioning";
+            this.btnSendProvisioningTask.Click += new System.EventHandler(this.btnSendProvisioningTask_Click);
 
-            // 🔹 Provisioning Button (Disabled initially)
-            this.btnProvisioning.Location = new System.Drawing.Point(20, 140);
-            this.btnProvisioning.Size = new System.Drawing.Size(250, 30);
-            this.btnProvisioning.Text = "Proceed to Provisioning";
-            this.btnProvisioning.Enabled = false;
-            this.btnProvisioning.Click += new System.EventHandler(this.btnProvisioning_Click);
+            // 🔹 Provision Device Button
+            this.btnProvisionDevice.Location = new System.Drawing.Point(460, 65);
+            this.btnProvisionDevice.Size = new System.Drawing.Size(390, 35);
+            this.btnProvisionDevice.Text = "Provision Device";
+            this.btnProvisionDevice.Click += new System.EventHandler(this.btnFetchProvisioning_Click);
 
-            // 🔹 Command Output Box
-            this.txtCommandOutput.Location = new System.Drawing.Point(20, 180);
-            this.txtCommandOutput.Size = new System.Drawing.Size(380, 100);
+            // 🔹 Command Output
+            this.txtCommandOutput.Location = new System.Drawing.Point(20, 115);
+            this.txtCommandOutput.Size = new System.Drawing.Size(830, 370);
             this.txtCommandOutput.Multiline = true;
+            this.txtCommandOutput.ScrollBars = ScrollBars.Vertical;
             this.txtCommandOutput.ReadOnly = true;
+            this.txtCommandOutput.Font = new System.Drawing.Font("Consolas", 9); // optional: monospace for logs
 
-            // 🔹 Add Controls to Form
-            this.Controls.Add(this.lblSerial);
+            // 🔹 Add Controls
             this.Controls.Add(this.txtSerial);
-            this.Controls.Add(this.lblIP);
             this.Controls.Add(this.txtIP);
             this.Controls.Add(this.btnFetchInfo);
-            this.Controls.Add(this.btnRegister);
-            this.Controls.Add(this.btnProvisioning);
+            this.Controls.Add(this.btnSendProvisioningTask);
+            this.Controls.Add(this.btnProvisionDevice);
             this.Controls.Add(this.txtCommandOutput);
 
-            // 🔹 Form Settings
-            this.ClientSize = new System.Drawing.Size(420, 320);
+            // 🔹 Form Setup
+            this.ClientSize = new System.Drawing.Size(880, 510);
             this.Name = "Form1";
-            this.Text = "Device Registration";
+            this.Text = "User Provisioning Tool";
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
     }
 }
