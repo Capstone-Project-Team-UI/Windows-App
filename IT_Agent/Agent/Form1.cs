@@ -47,6 +47,8 @@ namespace Agent
             InitializeComponent();
 
 
+            this.btnStartKVM.Enabled = false;
+
             // this.Icon = Properties.Resources.your_icon; // (add icon to resouces.resx)
 
 
@@ -246,6 +248,62 @@ namespace Agent
                 MessageBox.Show($"📡 Refresh error: {ex.Message}");
             }
         }
+
+        private void lstProvisioned_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            btnStartKVM.Enabled = lstProvisioned.SelectedItem != null;
+        }
+
+        //KVM
+        private async void btnStartKVM_Click(object sender, EventArgs e)
+        {
+            if (lstProvisioned.SelectedItem == null)
+            {
+                MessageBox.Show("Select a provisioned device.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selected = lstProvisioned.SelectedItem.ToString(); // Format: userID::uniqueHash
+            string[] parts = selected.Split(new[] { "::" }, StringSplitOptions.None);
+            if (parts.Length != 2)
+            {
+                MessageBox.Show("Invalid device format. Expected 'userID::hash'", "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string userId = parts[0];
+            string uniqueHash = parts[1];
+
+            // Replace these with real device info (if avalabale)
+            string host = "192.168.1.100"; // Ideally fetched from a mapping of userID → IP
+            string username = "admin";
+            string password = "admin123";
+
+            string url = $"http://localhost:8080/api/start_kvm?host={host}&user={username}&password={password}";
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    HttpResponseMessage response = await client.PostAsync(url, null);
+                    string responseBody = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show($"✅ KVM started for {userId}", "KVM Active", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"❌ KVM failed: {responseBody}", "KVM Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"⚠ KVM Exception: {ex.Message}", "Network Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
 
 
         private async void PollTimer_Tick(object sender, EventArgs e)

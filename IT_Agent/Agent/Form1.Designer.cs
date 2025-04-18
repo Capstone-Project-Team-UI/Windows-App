@@ -17,6 +17,9 @@
         private System.Windows.Forms.TextBox txtCommandOutput;
         private System.Windows.Forms.ToolTip toolTip1;
 
+        private System.Windows.Forms.Button btnStartKVM;
+
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null)) components.Dispose();
@@ -39,7 +42,17 @@
             this.txtCommandOutput = new System.Windows.Forms.TextBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
 
+
+
             this.SuspendLayout();
+
+            // 🔹 Start KVM Button
+            this.btnStartKVM = new System.Windows.Forms.Button();
+            this.btnStartKVM.Location = new System.Drawing.Point(460, 210); // Adjust position as needed
+            this.btnStartKVM.Size = new System.Drawing.Size(400, 35);
+            this.btnStartKVM.Text = "Start KVM";
+            this.btnStartKVM.Click += new System.EventHandler(this.btnStartKVM_Click);
+            this.Controls.Add(this.btnStartKVM);
 
             // 🔹 Labels
             this.lblPending.AutoSize = true;
@@ -66,6 +79,9 @@
             this.lstProvisioned.Location = new System.Drawing.Point(460, 40);
             this.lstProvisioned.Size = new System.Drawing.Size(400, 160);
             this.lstProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            this.lstProvisioned.SelectedIndexChanged += new System.EventHandler(this.lstProvisioned_SelectedIndexChanged);
+
 
             // 🔹 Clear Provisioned Button
             this.btnClearProvisioned.Location = new System.Drawing.Point(820, 10);
