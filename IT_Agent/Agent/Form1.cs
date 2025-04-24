@@ -220,7 +220,7 @@ namespace Agent
                                 }
                                 if (taskType == "Provisioned")
                                 {
-                           
+
                                     if (!lstProvisioned.Items.Contains(entry))
                                     {
                                         lstProvisioned.Items.Add(entry);
@@ -329,7 +329,7 @@ namespace Agent
 
                 // ✅ Remove from Pending list after provisioning
                 lstPending.Items.Remove(selected);
-                
+
                 if (!zippedHashes.Contains(serialHash))
                 {
                     zippedHashes.Add(serialHash);
@@ -360,7 +360,7 @@ namespace Agent
         // 🔹  Download Default Provisioning Folder from S3
         private async void btnDownloadTemplate_Click(object sender, EventArgs e)
         {
- 
+
 
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
@@ -535,8 +535,9 @@ namespace Agent
             public string object_key { get; set; }
         }
 
-
-
-
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
     }
 }
