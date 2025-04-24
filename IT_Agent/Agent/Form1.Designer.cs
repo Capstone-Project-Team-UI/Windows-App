@@ -45,6 +45,8 @@
             // 
             lstPending.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             lstPending.BackColor = Color.FromArgb(192, 255, 255);
+            lstPending.BorderRadius = 20;
+            lstPending.DrawMode = DrawMode.OwnerDrawFixed;
             lstPending.Font = new Font("SimSun", 9F, FontStyle.Bold);
             lstPending.FormattingEnabled = true;
             lstPending.ItemHeight = 18;
@@ -61,6 +63,8 @@
             // 
             lstProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             lstProvisioned.BackColor = Color.FromArgb(192, 255, 255);
+            lstProvisioned.BorderRadius = 20;
+            lstProvisioned.DrawMode = DrawMode.OwnerDrawFixed;
             lstProvisioned.Font = new Font("SimSun", 9F, FontStyle.Bold);
             lstProvisioned.FormattingEnabled = true;
             lstProvisioned.ItemHeight = 18;
@@ -139,7 +143,7 @@
             btnClearProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             btnClearProvisioned.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             btnClearProvisioned.BackColor = Color.LightCyan;
-            btnClearProvisioned.Location = new Point(1162, 683);
+            btnClearProvisioned.Location = new Point(1004, 677);
             btnClearProvisioned.MaximumSize = new Size(30, 28);
             btnClearProvisioned.MinimumSize = new Size(30, 28);
             btnClearProvisioned.Name = "btnClearProvisioned";
@@ -154,7 +158,7 @@
             // 
             btnFetchAllProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             btnFetchAllProvisioned.BackColor = Color.LightCyan;
-            btnFetchAllProvisioned.Location = new Point(1207, 683);
+            btnFetchAllProvisioned.Location = new Point(1049, 677);
             btnFetchAllProvisioned.MaximumSize = new Size(30, 28);
             btnFetchAllProvisioned.MinimumSize = new Size(30, 28);
             btnFetchAllProvisioned.Name = "btnFetchAllProvisioned";

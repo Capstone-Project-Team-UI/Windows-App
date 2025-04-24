@@ -17,18 +17,39 @@ public class RoundedListBox : ListBox
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
         GraphicsPath path = GetRoundedRectPath(this.ClientRectangle, BorderRadius);
 
-        // Set control region to clip corners
+        // Offset path for shadow
+        Rectangle shadowRect = new Rectangle(this.ClientRectangle.X + 5, this.ClientRectangle.Y + 5,
+                                             this.ClientRectangle.Width - 1, this.ClientRectangle.Height - 1);
+        GraphicsPath shadowPath = GetRoundedRectPath(shadowRect, BorderRadius);
+
+        // Draw drop shadow first
+        using (PathGradientBrush shadowBrush = new PathGradientBrush(shadowPath))
+        {
+            shadowBrush.CenterColor = Color.FromArgb(80, Color.Black);
+            shadowBrush.SurroundColors = new Color[] { Color.Transparent };
+            e.Graphics.FillPath(shadowBrush, shadowPath);
+        }
+
+        // Set clipping region to rounded shape
         this.Region = new Region(path);
 
+        // Draw the main background
+        using (SolidBrush bgBrush = new SolidBrush(this.BackColor))
+        {
+            e.Graphics.FillPath(bgBrush, path);
+        }
+
+        // Optional: Draw border
         using (Pen pen = new Pen(Color.Gray, 2))
         {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            e.Graphics.FillPath(new SolidBrush(this.BackColor), path);
             e.Graphics.DrawPath(pen, path);
         }
 
+        // Draw items
         for (int i = 0; i < this.Items.Count; i++)
         {
             Rectangle itemRect = this.GetItemRectangle(i);
@@ -39,10 +60,11 @@ public class RoundedListBox : ListBox
     }
 
 
+
     private GraphicsPath GetRoundedRectPath(Rectangle rect, int radius)
     {
-        GraphicsPath path = new GraphicsPath();
         int diameter = radius * 2;
+        GraphicsPath path = new GraphicsPath();
 
         path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
         path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
@@ -52,4 +74,5 @@ public class RoundedListBox : ListBox
 
         return path;
     }
+
 }
