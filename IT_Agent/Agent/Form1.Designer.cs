@@ -47,7 +47,7 @@
             lstPending.ItemHeight = 25;
             lstPending.Location = new Point(20, 40);
             lstPending.Name = "lstPending";
-            lstPending.Size = new Size(378, 79);
+            lstPending.Size = new Size(400, 79);
             lstPending.TabIndex = 2;
             lstPending.SelectedIndexChanged += lstPending_SelectedIndexChanged;
             // 
@@ -56,18 +56,18 @@
             lstProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
             lstProvisioned.FormattingEnabled = true;
             lstProvisioned.ItemHeight = 25;
-            lstProvisioned.Location = new Point(438, 40);
+            lstProvisioned.Location = new Point(482, 40);
             lstProvisioned.Name = "lstProvisioned";
-            lstProvisioned.Size = new Size(400, 404);
+            lstProvisioned.Size = new Size(400, 279);
             lstProvisioned.TabIndex = 3;
             // 
             // btnFetchTasks
             // 
             btnFetchTasks.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             btnFetchTasks.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btnFetchTasks.Location = new Point(20, 166);
+            btnFetchTasks.Location = new Point(20, 200);
             btnFetchTasks.Name = "btnFetchTasks";
-            btnFetchTasks.Size = new Size(378, 35);
+            btnFetchTasks.Size = new Size(400, 35);
             btnFetchTasks.TabIndex = 6;
             btnFetchTasks.Text = "Fetch Tasks";
             btnFetchTasks.Click += btnFetchTasks_Click;
@@ -76,9 +76,9 @@
             // 
             btnCreateProvisioning.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             btnCreateProvisioning.Enabled = false;
-            btnCreateProvisioning.Location = new Point(20, 216);
+            btnCreateProvisioning.Location = new Point(20, 250);
             btnCreateProvisioning.Name = "btnCreateProvisioning";
-            btnCreateProvisioning.Size = new Size(378, 35);
+            btnCreateProvisioning.Size = new Size(400, 35);
             btnCreateProvisioning.TabIndex = 7;
             btnCreateProvisioning.Text = "Create Provisioning Zip";
             btnCreateProvisioning.Click += btnCreateProvisioning_Click;
@@ -86,9 +86,9 @@
             // btnDownloadTemplate
             // 
             btnDownloadTemplate.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            btnDownloadTemplate.Location = new Point(20, 266);
+            btnDownloadTemplate.Location = new Point(20, 300);
             btnDownloadTemplate.Name = "btnDownloadTemplate";
-            btnDownloadTemplate.Size = new Size(378, 35);
+            btnDownloadTemplate.Size = new Size(400, 35);
             btnDownloadTemplate.TabIndex = 8;
             btnDownloadTemplate.Text = "Get Default Folder from S3";
             btnDownloadTemplate.Click += btnDownloadTemplate_Click;
@@ -96,9 +96,9 @@
             // btnDuplicatePackage
             // 
             btnDuplicatePackage.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            btnDuplicatePackage.Location = new Point(20, 316);
+            btnDuplicatePackage.Location = new Point(20, 350);
             btnDuplicatePackage.Name = "btnDuplicatePackage";
-            btnDuplicatePackage.Size = new Size(378, 35);
+            btnDuplicatePackage.Size = new Size(400, 35);
             btnDuplicatePackage.TabIndex = 9;
             btnDuplicatePackage.Text = "Duplicate Package Folder";
             btnDuplicatePackage.Click += btnDuplicatePackage_Click;
@@ -106,7 +106,7 @@
             // btnClearProvisioned
             // 
             btnClearProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnClearProvisioned.Location = new Point(798, 10);
+            btnClearProvisioned.Location = new Point(820, 10);
             btnClearProvisioned.Name = "btnClearProvisioned";
             btnClearProvisioned.Size = new Size(30, 28);
             btnClearProvisioned.TabIndex = 4;
@@ -117,7 +117,7 @@
             // btnFetchAllProvisioned
             // 
             btnFetchAllProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnFetchAllProvisioned.Location = new Point(833, 10);
+            btnFetchAllProvisioned.Location = new Point(855, 10);
             btnFetchAllProvisioned.Name = "btnFetchAllProvisioned";
             btnFetchAllProvisioned.Size = new Size(30, 28);
             btnFetchAllProvisioned.TabIndex = 5;
@@ -128,7 +128,7 @@
             // lblPending
             // 
             lblPending.AutoSize = true;
-            lblPending.Location = new Point(20, 15);
+            lblPending.Location = new Point(20, 9);
             lblPending.Name = "lblPending";
             lblPending.Size = new Size(76, 25);
             lblPending.TabIndex = 0;
@@ -138,7 +138,7 @@
             // 
             lblProvisioned.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             lblProvisioned.AutoSize = true;
-            lblProvisioned.Location = new Point(438, 15);
+            lblProvisioned.Location = new Point(482, 9);
             lblProvisioned.Name = "lblProvisioned";
             lblProvisioned.Size = new Size(105, 25);
             lblProvisioned.TabIndex = 1;
@@ -148,17 +148,18 @@
             // 
             txtCommandOutput.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             txtCommandOutput.Font = new Font("Consolas", 9F);
-            txtCommandOutput.Location = new Point(20, 354);
+            txtCommandOutput.Location = new Point(20, 413);
             txtCommandOutput.Multiline = true;
             txtCommandOutput.Name = "txtCommandOutput";
             txtCommandOutput.ReadOnly = true;
             txtCommandOutput.ScrollBars = ScrollBars.Vertical;
-            txtCommandOutput.Size = new Size(843, 120);
+            txtCommandOutput.Size = new Size(865, 117);
             txtCommandOutput.TabIndex = 10;
             // 
             // Form1
             // 
-            ClientSize = new Size(878, 504);
+            BackColor = Color.FromArgb(46, 51, 73);
+            ClientSize = new Size(900, 560);
             Controls.Add(lblPending);
             Controls.Add(lblProvisioned);
             Controls.Add(lstPending);
@@ -170,6 +171,7 @@
             Controls.Add(btnDownloadTemplate);
             Controls.Add(btnDuplicatePackage);
             Controls.Add(txtCommandOutput);
+            FormBorderStyle = FormBorderStyle.None;
             MinimumSize = new Size(900, 560);
             Name = "Form1";
             Text = "IT Agent Dashboard";
