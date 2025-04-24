@@ -66,9 +66,11 @@
             lstProvisioned.BorderRadius = 20;
             lstProvisioned.DrawMode = DrawMode.OwnerDrawFixed;
             lstProvisioned.Font = new Font("SimSun", 9F, FontStyle.Bold);
+            lstProvisioned.HorizontalScrollbar = true;
             lstProvisioned.ItemHeight = 18;
             lstProvisioned.Location = new Point(517, 73);
             lstProvisioned.Name = "lstProvisioned";
+            lstProvisioned.ScrollAlwaysVisible = true;
             lstProvisioned.Size = new Size(400, 598);
             lstProvisioned.TabIndex = 3;
             // 
@@ -174,6 +176,7 @@
             lblProvisioned.Size = new Size(82, 12);
             lblProvisioned.TabIndex = 1;
             lblProvisioned.Text = "Provisioned";
+
             // 
             // button2
             // 

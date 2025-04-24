@@ -55,7 +55,15 @@ public class RoundedListBox : ListBox
             Rectangle itemRect = this.GetItemRectangle(i);
             bool selected = (this.SelectedIndex == i);
             e.Graphics.FillRectangle(selected ? Brushes.LightBlue : Brushes.White, itemRect);
-            TextRenderer.DrawText(e.Graphics, this.Items[i].ToString(), this.Font, itemRect, this.ForeColor);
+            TextRenderer.DrawText(
+                e.Graphics,
+                this.Items[i].ToString(),
+                this.Font,
+                itemRect,
+                this.ForeColor,
+                TextFormatFlags.EndEllipsis | TextFormatFlags.Left
+                  );
+
         }
     }
 
