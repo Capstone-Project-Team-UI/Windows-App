@@ -358,48 +358,25 @@ namespace Agent
 
 
         // 🔹  Download Default Provisioning Folder from S3
-        private async void btnDownloadTemplate_Click(object sender, EventArgs e)
+        private void btnDownloadTemplate_Click(object sender, EventArgs e)
         {
-
-
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "Choose a folder to extract the provisioning base to:";
+                dialog.Description = "Select your custom provisioning base folder (the one containing 'Packages')";
 
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    string downloadPath = Path.Combine(dialog.SelectedPath, "ProvisioningBase.zip");
+                    string selectedPath = dialog.SelectedPath;
+                    string packagesPath = Path.Combine(selectedPath, "Packages");
 
-                    try
+                    if (!Directory.Exists(packagesPath))
                     {
-                        // Download the file from S3
-                        var request = new Amazon.S3.Model.GetObjectRequest
-                        {
-                            BucketName = config.s3_bucket,
-                            Key = config.object_key
-                        };
-
-                        using (var response = await s3Client.GetObjectAsync(request))
-                        using (var responseStream = response.ResponseStream)
-                        using (var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write))
-                        {
-                            await responseStream.CopyToAsync(fileStream);
-                        }
-
-                        // Extract the zip
-                        string extractPath = Path.Combine(dialog.SelectedPath, "AMD Provisioning Folder");
-                        if (Directory.Exists(extractPath)) Directory.Delete(extractPath, true);
-                        ZipFile.ExtractToDirectory(downloadPath, extractPath);
-
-                        // Save the extracted path to the cache
-                        SaveCachedPath(extractPath);
-
-                        MessageBox.Show("✅ Provisioning folder downloaded and extracted successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show("❌ Selected folder does not contain a 'Packages' subfolder.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("❌ Error downloading from S3:\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+
+                    SaveCachedPath(selectedPath);
+                    MessageBox.Show("✅ Folder set as provisioning base successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }

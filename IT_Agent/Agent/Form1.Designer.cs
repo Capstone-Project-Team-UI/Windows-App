@@ -119,7 +119,7 @@
             btnDownloadTemplate.Name = "btnDownloadTemplate";
             btnDownloadTemplate.Size = new Size(400, 35);
             btnDownloadTemplate.TabIndex = 8;
-            btnDownloadTemplate.Text = "Get Default Folder from S3";
+            btnDownloadTemplate.Text = "Select Provisioning Folder";
             btnDownloadTemplate.UseVisualStyleBackColor = false;
             btnDownloadTemplate.Click += btnDownloadTemplate_Click;
             // 
