@@ -33,6 +33,7 @@
         private void InitializeComponent()
         {
             mainPanel = new GradientPanel();
+            pictureBox1 = new PictureBox();
             button1 = new Button();
             txtSerial = new TextBox();
             txtIP = new TextBox();
@@ -40,7 +41,6 @@
             btnSendProvisioningTask = new Button();
             btnProvisionDevice = new Button();
             txtCommandOutput = new TextBox();
-            pictureBox1 = new PictureBox();
             mainPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
@@ -60,11 +60,23 @@
             mainPanel.Controls.Add(btnProvisionDevice);
             mainPanel.Controls.Add(txtCommandOutput);
             mainPanel.Location = new Point(0, 0);
+            mainPanel.MinimumSize = new Size(1260, 776);
             mainPanel.Name = "mainPanel";
-            mainPanel.Size = new Size(1246, 1026);
+            mainPanel.Size = new Size(1260, 776);
             mainPanel.TabIndex = 0;
             mainPanel.TopColor = Color.FromArgb(25, 25, 112);
             mainPanel.Paint += mainPanel_Paint;
+            // 
+            // pictureBox1
+            // 
+            pictureBox1.ErrorImage = null;
+            pictureBox1.Image = Agent.Properties.Resources._1200px_HP_logo_2012_svg;
+            pictureBox1.Location = new Point(579, 47);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(100, 100);
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox1.TabIndex = 7;
+            pictureBox1.TabStop = false;
             // 
             // button1
             // 
@@ -84,7 +96,7 @@
             txtSerial.BackColor = SystemColors.ButtonFace;
             txtSerial.BorderStyle = BorderStyle.FixedSingle;
             txtSerial.ForeColor = Color.Black;
-            txtSerial.Location = new Point(205, 211);
+            txtSerial.Location = new Point(213, 187);
             txtSerial.Name = "txtSerial";
             txtSerial.PlaceholderText = "Serial Number";
             txtSerial.Size = new Size(280, 23);
@@ -96,7 +108,7 @@
             txtIP.BackColor = SystemColors.ButtonFace;
             txtIP.BorderStyle = BorderStyle.FixedSingle;
             txtIP.ForeColor = Color.Black;
-            txtIP.Location = new Point(505, 211);
+            txtIP.Location = new Point(513, 187);
             txtIP.Name = "txtIP";
             txtIP.PlaceholderText = "IP Address";
             txtIP.Size = new Size(280, 23);
@@ -107,7 +119,7 @@
             btnFetchInfo.Anchor = AnchorStyles.None;
             btnFetchInfo.FlatStyle = FlatStyle.Popup;
             btnFetchInfo.ForeColor = SystemColors.HighlightText;
-            btnFetchInfo.Location = new Point(805, 209);
+            btnFetchInfo.Location = new Point(813, 185);
             btnFetchInfo.Name = "btnFetchInfo";
             btnFetchInfo.Size = new Size(230, 30);
             btnFetchInfo.TabIndex = 2;
@@ -120,7 +132,7 @@
             btnSendProvisioningTask.Anchor = AnchorStyles.None;
             btnSendProvisioningTask.FlatStyle = FlatStyle.Popup;
             btnSendProvisioningTask.ForeColor = SystemColors.HighlightText;
-            btnSendProvisioningTask.Location = new Point(205, 256);
+            btnSendProvisioningTask.Location = new Point(213, 232);
             btnSendProvisioningTask.Name = "btnSendProvisioningTask";
             btnSendProvisioningTask.Size = new Size(410, 35);
             btnSendProvisioningTask.TabIndex = 3;
@@ -133,7 +145,7 @@
             btnProvisionDevice.Anchor = AnchorStyles.None;
             btnProvisionDevice.FlatStyle = FlatStyle.Popup;
             btnProvisionDevice.ForeColor = SystemColors.HighlightText;
-            btnProvisionDevice.Location = new Point(625, 256);
+            btnProvisionDevice.Location = new Point(633, 232);
             btnProvisionDevice.Name = "btnProvisionDevice";
             btnProvisionDevice.Size = new Size(410, 35);
             btnProvisionDevice.TabIndex = 4;
@@ -148,33 +160,21 @@
             txtCommandOutput.BorderStyle = BorderStyle.None;
             txtCommandOutput.Font = new Font("Consolas", 9F);
             txtCommandOutput.ForeColor = Color.FromArgb(220, 220, 235);
-            txtCommandOutput.Location = new Point(205, 306);
+            txtCommandOutput.Location = new Point(212, 296);
             txtCommandOutput.Multiline = true;
             txtCommandOutput.Name = "txtCommandOutput";
             txtCommandOutput.ReadOnly = true;
-            txtCommandOutput.Size = new Size(830, 643);
+            txtCommandOutput.Size = new Size(830, 443);
             txtCommandOutput.TabIndex = 5;
-            // 
-            // pictureBox1
-            // 
-            pictureBox1.ErrorImage = null;
-            pictureBox1.Image = Agent.Properties.Resources._1200px_HP_logo_2012_svg;
-            pictureBox1.Location = new Point(567, 49);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(100, 100);
-            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
-            pictureBox1.TabIndex = 7;
-            pictureBox1.TabStop = false;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = SystemColors.ActiveCaption;
-            ClientSize = new Size(1243, 1023);
+            ClientSize = new Size(1257, 768);
             Controls.Add(mainPanel);
             FormBorderStyle = FormBorderStyle.None;
-            MinimumSize = new Size(1243, 1023);
             Name = "Form1";
             Text = "User Provisioning Tool";
             mainPanel.ResumeLayout(false);
