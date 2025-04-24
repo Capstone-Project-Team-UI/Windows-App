@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 namespace DeviceInfoApp
 {
     public partial class Form1 : Form
+
     {
         public Form1()
         {
@@ -134,7 +135,7 @@ namespace DeviceInfoApp
 
         // 🔹 Get System Serial Number
         private string GetSerialNumber()
-        {   
+        {
             try
             {
                 return "SG56YUI"; // Replace with actual serial retrieval logic
@@ -143,8 +144,8 @@ namespace DeviceInfoApp
             {
                 MessageBox.Show($"Error fetching serial number: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
-            } 
-            
+            }
+
             // Actual serial logic
 
             /*
@@ -167,8 +168,9 @@ namespace DeviceInfoApp
         // 🔹 Get Local IP Address
         private string GetLocalIPAddress()
         {
+            /*
             try
-            {
+            {   
                 return "192.168.1.100"; // Replace with actual IP retrieval logic
             }
             catch (Exception ex)
@@ -176,30 +178,31 @@ namespace DeviceInfoApp
                 MessageBox.Show($"Error fetching IP Address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
             }
+            */
 
-         // Actual ip fetcher
-         /* try
-            {
-                string localIP = "Unknown";
-                var host = Dns.GetHostEntry(Dns.GetHostName());
+            // Actual ip fetcher
+            try
+               {
+                   string localIP = "Unknown";
+                   var host = Dns.GetHostEntry(Dns.GetHostName());
 
-                foreach (var ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    {
-                        localIP = ip.ToString();
-                        break;
-                    }
-                }
+                   foreach (var ip in host.AddressList)
+                   {
+                       if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                       {
+                           localIP = ip.ToString();
+                           break;
+                       }
+                   }
 
-                return localIP;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return "Unknown";
+                   return localIP;
+               }
+               catch (Exception ex)
+               {
+                   MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   return "Unknown";
 
-            }   */
+               }   
 
         }
 
@@ -265,7 +268,7 @@ namespace DeviceInfoApp
 
             // ✅ Step 1: Run _oMt
             string workingDir = $"\"{selectedDirectory}\"";
-            string run_oMt = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_Package_01_oMt >> \"{logFilePath}\" 2>&1";
+            string run_oMt = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T-CRYPTO_ACMS_oMt >> \"{logFilePath}\" 2>&1";
             RunCommandAsAdmin(selectedDirectory, run_oMt);
 
             if (!File.Exists(logFilePath))
@@ -292,7 +295,7 @@ namespace DeviceInfoApp
             if (alreadyProvisioned)
             {
                 txtCommandOutput.AppendText("⚠ Already provisioned. Running re-provision (_M)...\r\n");
-                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_Package_01_M >> \"{logFilePath}\" 2>&1";
+                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_ACMS_M >> \"{logFilePath}\" 2>&1";
                 RunCommandAsAdmin(selectedDirectory, run_M);
                 txtCommandOutput.AppendText("✅ Re-provisioning complete. Restart required.\r\n");
                 return true;
@@ -407,7 +410,14 @@ namespace DeviceInfoApp
             public string UniqueId { get; set; }
         }
 
+        private void mainPanel_Paint(object sender, PaintEventArgs e)
+        {
 
+        }
 
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
     }
 }
