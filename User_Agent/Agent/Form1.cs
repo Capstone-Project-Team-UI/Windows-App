@@ -136,9 +136,12 @@ namespace DeviceInfoApp
         // 🔹 Get System Serial Number
         private string GetSerialNumber()
         {
+
+            /*
+             * 
             try
             {
-                return "SG56YUI"; // Replace with actual serial retrieval logic
+                return "Device123"; // Replace with actual serial retrieval logic
             }
             catch (Exception ex)
             {
@@ -148,7 +151,7 @@ namespace DeviceInfoApp
 
             // Actual serial logic
 
-            /*
+            */
              try
             {
                 ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS");
@@ -161,7 +164,7 @@ namespace DeviceInfoApp
             {
                 MessageBox.Show($"Error fetching serial number: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            return "Unknown"; */
+            return "Unknown";
 
         }
 
