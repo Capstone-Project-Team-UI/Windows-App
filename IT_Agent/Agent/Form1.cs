@@ -160,7 +160,8 @@ namespace Agent
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    string usersApi = "http://localhost:8090/users";
+                    string usersApi = config.users_api;
+                    ;
                     var usersResp = await client.GetAsync(usersApi);
                     string usersJson = await usersResp.Content.ReadAsStringAsync();
                     if (!usersResp.IsSuccessStatusCode) return;
@@ -431,7 +432,7 @@ namespace Agent
             string userHash = parts[1];
 
             string packagesPath = Path.Combine(cachedFolderPath, "Packages");
-            string defPackagePath = Path.Combine(packagesPath, "defPackage");
+            string defPackagePath = Path.Combine(packagesPath, "ACMS");
             string newPackagePath = Path.Combine(packagesPath, userHash);
 
             if (!Directory.Exists(defPackagePath))

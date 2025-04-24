@@ -39,18 +39,49 @@ namespace DeviceInfoApp
             string organization = "Company A";
             string email = "support@companya.com";
 
-            bool registrationSuccess = false;
+            bool proceedToProvisioning = false;
 
             try
             {
-                registrationSuccess = await ApiHelper.RegisterUser(userID, organization, serialNumber, uniqueID, email, txtCommandOutput);
-                if (registrationSuccess)
+                using (HttpClient client = new HttpClient())
                 {
-                    txtCommandOutput.AppendText("✅ Device Registered! Proceeding to provisioning.\r\n");
-                }
-                else
-                {
-                    txtCommandOutput.AppendText("ℹ Device may already be registered. Proceeding to provisioning.\r\n");
+                    var payload = new
+                    {
+                        userID = userID,
+                        organization = organization,
+                        serialNumber = serialNumber,
+                        uniqueID = uniqueID,
+                        emailAddress = email
+                    };
+
+                    string json = JsonConvert.SerializeObject(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    string registerUrl = "http://localhost:8090/users"; // Replace with config if needed
+                    HttpResponseMessage response = await client.PostAsync(registerUrl, content);
+                    string responseBody = await response.Content.ReadAsStringAsync();
+
+                    txtCommandOutput.AppendText($"{DateTime.Now}: 📤 Registering user: {json}\r\n");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        txtCommandOutput.AppendText("✅ Device Registered! Proceeding to provisioning.\r\n");
+                        proceedToProvisioning = true;
+                    }
+                    else
+                    {
+                        txtCommandOutput.AppendText($"❌ Registration failed: {responseBody}\r\n");
+
+                        if (responseBody.Contains("already exists") || responseBody.Contains("already registered"))
+                        {
+                            txtCommandOutput.AppendText("ℹ Device is already registered. Proceeding to provisioning.\r\n");
+                            proceedToProvisioning = true;
+                        }
+                        else
+                        {
+                            txtCommandOutput.AppendText("❌ Device not registered. Cannot proceed to provisioning.\r\n");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -58,7 +89,11 @@ namespace DeviceInfoApp
                 txtCommandOutput.AppendText($"❌ Registration error: {ex.Message}\r\n");
             }
 
-            // 🔁 Send provisioning request regardless of registration result
+            // 🧠 Only send provisioning task if registration was successful or already registered
+            if (!proceedToProvisioning)
+                return;
+
+            // 🔁 Send provisioning request
             var taskPayload = new TaskModel
             {
                 Task = "Request Provisioning",
@@ -75,7 +110,7 @@ namespace DeviceInfoApp
                     string json = JsonConvert.SerializeObject(taskPayload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                    string apiUrl = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/";
+                    string apiUrl = "https://1dz4oqtvri.execute-api.us-east-2.amazonaws.com/prod/"; // Replace with config if needed
                     HttpResponseMessage response = await client.PostAsync(apiUrl, content);
                     string responseBody = await response.Content.ReadAsStringAsync();
 
@@ -97,14 +132,12 @@ namespace DeviceInfoApp
             }
         }
 
-
-
         // 🔹 Get System Serial Number
         private string GetSerialNumber()
         {   
             try
             {
-                return "Device123"; // Replace with actual serial retrieval logic
+                return "SG56YUI"; // Replace with actual serial retrieval logic
             }
             catch (Exception ex)
             {
