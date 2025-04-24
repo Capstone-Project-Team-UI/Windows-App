@@ -168,8 +168,9 @@ namespace DeviceInfoApp
         // 🔹 Get Local IP Address
         private string GetLocalIPAddress()
         {
+            /*
             try
-            {
+            {   
                 return "192.168.1.100"; // Replace with actual IP retrieval logic
             }
             catch (Exception ex)
@@ -177,9 +178,10 @@ namespace DeviceInfoApp
                 MessageBox.Show($"Error fetching IP Address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
             }
+            */
 
             // Actual ip fetcher
-            /* try
+            try
                {
                    string localIP = "Unknown";
                    var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -200,7 +202,7 @@ namespace DeviceInfoApp
                    MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                    return "Unknown";
 
-               }   */
+               }   
 
         }
 
