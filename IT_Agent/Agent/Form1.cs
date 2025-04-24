@@ -13,13 +13,40 @@ using System.Drawing;
 using Amazon.S3.Model;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 
 namespace Agent
 {
+
     public partial class Form1 : Form
 
     {
+
+        // Drag Windows without borderBar
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        private const int WM_NCLBUTTONDOWN = 0xA1;
+        private const int HTCAPTION = 0x2;
+
+
+        private void EnableDrag(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    ReleaseCapture();
+                    SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                }
+            };
+        }
 
 
         private AgentConfig config;
@@ -42,10 +69,15 @@ namespace Agent
         private string cachedFolderPath = "";
         private string downloadedFolderPath = "";
 
+
         public Form1()
         {
             InitializeComponent();
 
+            EnableDrag(this); // Makes the whole form draggable
+
+            // OR just make a specific panel draggable:
+            EnableDrag(mainPanel); // If you only want the panel to act as a title bar
 
             // this.Icon = Properties.Resources.your_icon; // (add icon to resouces.resx)
 
@@ -535,9 +567,14 @@ namespace Agent
             public string object_key { get; set; }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void button2_Click(object sender, EventArgs e)
         {
             Close();
+        }
+
+        private void txtCommandOutput_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
