@@ -266,7 +266,7 @@ namespace DeviceInfoApp
 
             // ✅ Step 1: Run _oMt
             string workingDir = $"\"{selectedDirectory}\"";
-            string run_oMt = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_Package_01_oMt >> \"{logFilePath}\" 2>&1";
+            string run_oMt = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T-CRYPTO_ACMS_oMt >> \"{logFilePath}\" 2>&1";
             RunCommandAsAdmin(selectedDirectory, run_oMt);
 
             if (!File.Exists(logFilePath))
@@ -293,7 +293,7 @@ namespace DeviceInfoApp
             if (alreadyProvisioned)
             {
                 txtCommandOutput.AppendText("⚠ Already provisioned. Running re-provision (_M)...\r\n");
-                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_Package_01_M >> \"{logFilePath}\" 2>&1";
+                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_ACMS_M >> \"{logFilePath}\" 2>&1";
                 RunCommandAsAdmin(selectedDirectory, run_M);
                 txtCommandOutput.AppendText("✅ Re-provisioning complete. Restart required.\r\n");
                 return true;
