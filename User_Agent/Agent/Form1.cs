@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 namespace DeviceInfoApp
 {
     public partial class Form1 : Form
+
     {
         public Form1()
         {
@@ -134,7 +135,7 @@ namespace DeviceInfoApp
 
         // 🔹 Get System Serial Number
         private string GetSerialNumber()
-        {   
+        {
             try
             {
                 return "SG56YUI"; // Replace with actual serial retrieval logic
@@ -143,8 +144,8 @@ namespace DeviceInfoApp
             {
                 MessageBox.Show($"Error fetching serial number: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
-            } 
-            
+            }
+
             // Actual serial logic
 
             /*
@@ -177,29 +178,29 @@ namespace DeviceInfoApp
                 return "Unknown";
             }
 
-         // Actual ip fetcher
-         /* try
-            {
-                string localIP = "Unknown";
-                var host = Dns.GetHostEntry(Dns.GetHostName());
+            // Actual ip fetcher
+            /* try
+               {
+                   string localIP = "Unknown";
+                   var host = Dns.GetHostEntry(Dns.GetHostName());
 
-                foreach (var ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    {
-                        localIP = ip.ToString();
-                        break;
-                    }
-                }
+                   foreach (var ip in host.AddressList)
+                   {
+                       if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                       {
+                           localIP = ip.ToString();
+                           break;
+                       }
+                   }
 
-                return localIP;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return "Unknown";
+                   return localIP;
+               }
+               catch (Exception ex)
+               {
+                   MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   return "Unknown";
 
-            }   */
+               }   */
 
         }
 
@@ -407,7 +408,14 @@ namespace DeviceInfoApp
             public string UniqueId { get; set; }
         }
 
+        private void mainPanel_Paint(object sender, PaintEventArgs e)
+        {
 
+        }
 
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
     }
 }
