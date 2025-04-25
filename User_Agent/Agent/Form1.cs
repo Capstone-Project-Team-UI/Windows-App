@@ -276,15 +276,13 @@ namespace DeviceInfoApp
             txtCommandOutput.AppendText("⚙ Starting AIM-T provisioning...\r\n");
 
             string provisioningAppPath = Path.Combine(selectedDirectory, "AIM-TProvisioningApp.exe");
-            string logFilePath = Path.Combine(selectedDirectory, "provision_log.txt");
-
             if (!Directory.Exists(selectedDirectory) || !File.Exists(provisioningAppPath))
             {
                 txtCommandOutput.AppendText("❌ AIM-T folder or executable not found.\r\n");
                 return false;
             }
 
-            // ✅ Ensure service is running
+            // ✅ Ensure AIMTManageabilityService is running
             try
             {
                 ServiceController sc = new ServiceController("AIMTManageabilityService");
@@ -300,49 +298,68 @@ namespace DeviceInfoApp
                 return false;
             }
 
-            // ✅ Create log file and set permissions
-            string createLog = $"echo. > \"{logFilePath}\" && icacls \"{logFilePath}\" /grant Everyone:F";
-            RunCommandAsAdmin(selectedDirectory, createLog);
+            // ✅ Create timestamped log
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            string logFilePath = Path.Combine(selectedDirectory, $"provision_log_{timestamp}.txt");
+            File.WriteAllText(logFilePath, "");
 
-            // ✅ Step 1: Run _oMt
-            string workingDir = $"\"{selectedDirectory}\"";
-            string run_oMt = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T-CRYPTO_ACMS_oMt >> \"{logFilePath}\" 2>&1";
-            RunCommandAsAdmin(selectedDirectory, run_oMt);
+            // 🔹 Step 1: Find the _oMt file
+            string oMtFile = Directory.GetFiles(selectedDirectory, "*_oMt", SearchOption.TopDirectoryOnly)
+                                        .Select(Path.GetFileName)
+                                        .FirstOrDefault();
 
+            if (string.IsNullOrEmpty(oMtFile))
+            {
+                txtCommandOutput.AppendText("❌ _oMt file not found.\r\n");
+                return false;
+            }
+
+            // 🔹 Step 2: Run _oMt first
+            string command1 = $"cd /d \"{selectedDirectory}\" && \"{provisioningAppPath}\" -i {oMtFile} >> \"{logFilePath}\" 2>&1";
+            txtCommandOutput.AppendText($"🚀 Running: {command1}\r\n");
+            RunCommandAsAdmin(selectedDirectory, command1);
+
+            // 🔹 Step 3: Read logs
             if (!File.Exists(logFilePath))
             {
                 txtCommandOutput.AppendText("❌ Log file not found. Command may have failed.\r\n");
                 return false;
             }
 
-            // ✅ Read logs
-            bool alreadyProvisioned = false;
-            string[] lines = File.ReadAllLines(logFilePath);
-            txtCommandOutput.AppendText("🔍 Log Output:\r\n" + string.Join("\r\n", lines) + "\r\n");
+            string[] logLines = File.ReadAllLines(logFilePath);
+            txtCommandOutput.AppendText("🔍 Log Output:\r\n" + string.Join("\r\n", logLines) + "\r\n");
 
-            foreach (string line in lines)
-            {
-                if (line.Contains("System owned error"))
-                {
-                    alreadyProvisioned = true;
-                    break;
-                }
-            }
+            bool alreadyProvisioned = logLines.Any(line => line.Contains("System owned error", StringComparison.OrdinalIgnoreCase));
 
-            // ✅ Step 2: If already provisioned, run _M
+            // 🔹 Step 4: Run _M if already provisioned
             if (alreadyProvisioned)
             {
                 txtCommandOutput.AppendText("⚠ Already provisioned. Running re-provision (_M)...\r\n");
 
-                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T-CRYPTO_ACMS_M >> \"{logFilePath}\" 2>&1";
-                RunCommandAsAdmin(selectedDirectory, run_M);
-                txtCommandOutput.AppendText("✅ Re-provisioning complete. Restart required.\r\n");
+                string mFile = Directory.GetFiles(selectedDirectory, "*_M", SearchOption.TopDirectoryOnly)
+                                        .Select(Path.GetFileName)
+                                        .FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(mFile))
+                {
+                    string command2 = $"cd /d \"{selectedDirectory}\" && \"{provisioningAppPath}\" -i {mFile} >> \"{logFilePath}\" 2>&1";
+                    txtCommandOutput.AppendText($"🚀 Running: {command2}\r\n");
+                    RunCommandAsAdmin(selectedDirectory, command2);
+                    txtCommandOutput.AppendText("✅ Re-provisioning complete. Restart required.\r\n");
+                }
+                else
+                {
+                    txtCommandOutput.AppendText("⚠ _M file not found. Skipping re-provision.\r\n");
+                }
+
                 return true;
             }
 
             txtCommandOutput.AppendText("✅ Successfully Provisioned. Restart required.\r\n");
             return true;
         }
+
+
 
 
         private async void btnFetchProvisioning_Click(object sender, EventArgs e)
@@ -361,6 +378,19 @@ namespace DeviceInfoApp
 
                 Directory.CreateDirectory(Path.GetDirectoryName(localZipPath)!);
 
+                if (Directory.Exists(extractPath))
+                {
+                    try
+                    {
+                        Directory.Delete(extractPath, true);
+                        txtCommandOutput.AppendText("🧹 Previous extracted folder deleted.\r\n");
+                    }
+                    catch (Exception ex)
+                    {
+                        txtCommandOutput.AppendText($"⚠ Failed to delete old folder: {ex.Message}\r\n");
+                    }
+                }
+
                 var s3Client = new Amazon.S3.AmazonS3Client("AKIA2MNVL7EDOIG3UO7I", "CJTexi2dkjqIHOwy4MIwRGkWyrZHHadN25YNVtoI", Amazon.RegionEndpoint.USWest2);
                 var request = new Amazon.S3.Model.GetObjectRequest
                 {
@@ -377,8 +407,10 @@ namespace DeviceInfoApp
 
                 txtCommandOutput.AppendText($"📥 Downloaded ZIP to: {localZipPath}\r\n");
 
-                System.IO.Compression.ZipFile.ExtractToDirectory(localZipPath, extractPath, true);
+                // 📦 Extract the new one
+                System.IO.Compression.ZipFile.ExtractToDirectory(localZipPath, extractPath);
                 txtCommandOutput.AppendText($"📂 Extracted to: {extractPath}\r\n");
+
 
                 // ✅ Begin AIM-T provisioning
                 bool success = RunAimtProvisioning(aimtPath);
