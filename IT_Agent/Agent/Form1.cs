@@ -315,15 +315,15 @@ namespace Agent
         {
             if (lstPending.SelectedItem == null)
             {
-                MessageBox.Show("⚠ Please select a user from the pending list.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Please select a user from the pending list.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            string selected = lstPending.SelectedItem.ToString(); // userID::hash
+            string selected = lstPending.SelectedItem.ToString(); // Format: userID::serialHash
             string[] parts = selected.Split(new[] { "::" }, StringSplitOptions.None);
             if (parts.Length != 2)
             {
-                MessageBox.Show("⚠ Invalid format. Expected: userID::hash", "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Invalid task format. Expected 'userID::serialHash'.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -331,58 +331,41 @@ namespace Agent
 
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "Select the package folder to duplicate (e.g., ACMS)";
-                if (dialog.ShowDialog() != DialogResult.OK) return;
+                dialog.Description = "Select the base package folder to duplicate (e.g., ACMS)";
+                if (dialog.ShowDialog() != DialogResult.OK)
+                    return;
 
                 string selectedPackage = dialog.SelectedPath;
-                string packagesDir = Path.GetDirectoryName(selectedPackage)!;
-                string newPackagePath = Path.Combine(packagesDir, userHash);
+                string parentDir = Path.GetDirectoryName(selectedPackage)!;
+                string newPackagePath = Path.Combine(parentDir, userHash);
 
                 try
                 {
-                    // Copy and rename
-                    if (Directory.Exists(newPackagePath))
-                    {
-                        MessageBox.Show("⚠ A folder with this hash already exists. Aborting.");
-                        return;
-                    }
-
+                    // Duplicate folder
                     CopyDirectory(selectedPackage, newPackagePath);
-                    txtCommandOutput.AppendText($"✅ Duplicated folder to: {newPackagePath}\r\n");
-
-                    // Rename all 3 AIM-T-CRYPTO files inside
-                    foreach (string file in Directory.GetFiles(newPackagePath, "AIM-T-CRYPTO_*_*"))
-                    {
-                        string suffix = file.Split('_').Last(); // e.g., M, oMt, oT
-                        string newName = $"AIM-T-CRYPTO_{userHash}_{suffix}";
-                        string newPath = Path.Combine(newPackagePath, newName);
-                        File.Move(file, newPath);
-                        txtCommandOutput.AppendText($"🔄 Renamed: {Path.GetFileName(file)} → {newName}\r\n");
-                    }
 
                     // Zip it
-                    string zipFileName = $"{userHash}_ProvisioningFiles.zip";
-                    string zipDir = Path.Combine(packagesDir, "..", "Zipped");
-                    string zipPath = Path.Combine(zipDir, zipFileName);
-                    Directory.CreateDirectory(zipDir);
-                    if (File.Exists(zipPath)) File.Delete(zipPath);
+                    string zippedPath = Path.Combine(parentDir, "Zipped");
+                    Directory.CreateDirectory(zippedPath);
+                    string zipFile = Path.Combine(zippedPath, $"{userHash}_ProvisioningFiles.zip");
 
-                    ZipFile.CreateFromDirectory(newPackagePath, zipPath);
-                    txtCommandOutput.AppendText($"📦 Zipped to: {zipPath}\r\n");
+                    if (File.Exists(zipFile)) File.Delete(zipFile);
+                    ZipFile.CreateFromDirectory(newPackagePath, zipFile);
+                    txtCommandOutput.AppendText($"📦 Zipped to: {zipFile}\r\n");
 
                     // Upload to S3
                     var putRequest = new PutObjectRequest
                     {
                         BucketName = config.s3_bucket,
-                        Key = $"users/{zipFileName}",
-                        FilePath = zipPath,
+                        Key = $"users/{userHash}_ProvisioningFiles.zip",
+                        FilePath = zipFile,
                         ContentType = "application/zip"
                     };
 
                     await s3Client.PutObjectAsync(putRequest);
-                    txtCommandOutput.AppendText($"☁ Uploaded to S3: users/{zipFileName}\r\n");
+                    txtCommandOutput.AppendText($"☁ Uploaded to S3: users/{userHash}_ProvisioningFiles.zip\r\n");
 
-                    // Update tracking
+                    // Remove from pending
                     lstPending.Items.Remove(selected);
                     if (!zippedHashes.Contains(userHash))
                     {
@@ -396,6 +379,7 @@ namespace Agent
                 }
             }
         }
+
 
 
         private void btnCreateProvisioning_Click(object sender, EventArgs e)
