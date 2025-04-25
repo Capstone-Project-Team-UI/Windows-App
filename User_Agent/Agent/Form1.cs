@@ -333,7 +333,8 @@ namespace DeviceInfoApp
             if (alreadyProvisioned)
             {
                 txtCommandOutput.AppendText("⚠ Already provisioned. Running re-provision (_M)...\r\n");
-                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T_CRYPTO_ACMS_M >> \"{logFilePath}\" 2>&1";
+
+                string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T-CRYPTO_ACMS_M >> \"{logFilePath}\" 2>&1";
                 RunCommandAsAdmin(selectedDirectory, run_M);
                 txtCommandOutput.AppendText("✅ Re-provisioning complete. Restart required.\r\n");
                 return true;
