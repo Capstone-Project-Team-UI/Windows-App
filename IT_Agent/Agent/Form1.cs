@@ -15,6 +15,8 @@ using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using System.Reflection; // Required for accessing embedded resources
+
 
 
 namespace Agent
@@ -72,14 +74,19 @@ namespace Agent
 
         public Form1()
         {
+
+            this.Icon = new Icon("Resources\\HPLogo.ico");
+
+
+
             InitializeComponent();
+
+
 
             EnableDrag(this); // Makes the whole form draggable
 
             // OR just make a specific panel draggable:
             EnableDrag(mainPanel); // If you only want the panel to act as a title bar
-
-            // this.Icon = Properties.Resources.your_icon; // (add icon to resouces.resx)
 
 
             // 🧠 Load config from file
@@ -119,8 +126,7 @@ namespace Agent
             trayIcon = new NotifyIcon
             {
                 Text = "IT Agent",
-                Icon = SystemIcons.Application,
-                // Icon = new Icon("Resources\\your_icon.ico"), // (After icon)
+                Icon = new Icon("Resources\\HPLogo.ico"),
                 ContextMenuStrip = trayMenu,
                 Visible = true
             };
@@ -238,18 +244,15 @@ namespace Agent
 
                                 if (taskType == "Request Provisioning")
                                 {
-                                    // Skip if previously zipped
-
                                     if (!string.IsNullOrWhiteSpace(deviceID) &&
-                                            !seenDeviceIDs.Contains(deviceID) &&
-                                                !zippedHashes.Contains(user.uniqueID))
-
+                                        !seenDeviceIDs.Contains(deviceID))
                                     {
                                         seenDeviceIDs.Add(deviceID);
                                         if (!lstPending.Items.Contains(entry))
                                             lstPending.Items.Add(entry);
                                     }
                                 }
+
                                 if (taskType == "Provisioned")
                                 {
 
@@ -325,14 +328,36 @@ namespace Agent
             }
 
             string serialHash = parts[1];
-            string userPackagePath = Path.Combine(cachedFolderPath, "Packages", serialHash);
+            string packagesPath = Path.Combine(cachedFolderPath, "Packages");
+            string defPackagePath = Path.Combine(packagesPath, "ACMS");
+            string userPackagePath = Path.Combine(packagesPath, serialHash);
 
-            if (!Directory.Exists(userPackagePath))
+            // Duplicate defPackage if needed
+            try
             {
-                MessageBox.Show($"❌ Folder '{serialHash}' does not exist under Packages. Please duplicate defPackage first.", "Missing Folder", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (!Directory.Exists(defPackagePath))
+                {
+                    MessageBox.Show("❌ 'ACMS' base package not found inside Packages.", "Missing Base Package", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (Directory.Exists(userPackagePath))
+                {
+                    txtCommandOutput?.AppendText($"⚠ Folder '{serialHash}' already exists. Skipping duplication.\r\n");
+                }
+                else
+                {
+                    CopyDirectory(defPackagePath, userPackagePath);
+                    txtCommandOutput?.AppendText($"✅ defPackage duplicated as: {serialHash}\r\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"❌ Error duplicating package:\n{ex.Message}", "Duplication Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
+            // Proceed with zip and upload
             string zipFileName = $"{serialHash}_ProvisioningFiles.zip";
             string zipPath = Path.Combine(cachedFolderPath, "Zipped", zipFileName);
             Directory.CreateDirectory(Path.GetDirectoryName(zipPath)!);
@@ -352,14 +377,10 @@ namespace Agent
                     ContentType = "application/zip"
                 };
 
-                using (var s3 = new AmazonS3Client(config.aws_access_key, config.aws_secret_key, RegionEndpoint.GetBySystemName(config.aws_region)))
-                {
-                    await s3.PutObjectAsync(putRequest);
-                }
+                await s3Client.PutObjectAsync(putRequest);
 
                 MessageBox.Show($"✅ Zip uploaded to S3:\nusers/{zipFileName}", "Upload Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // ✅ Remove from Pending list after provisioning
                 lstPending.Items.Remove(selected);
 
                 if (!zippedHashes.Contains(serialHash))
@@ -367,7 +388,6 @@ namespace Agent
                     zippedHashes.Add(serialHash);
                     File.AppendAllLines(zippedDevicesPath, new[] { serialHash });
                 }
-
             }
             catch (AmazonS3Exception s3Ex)
             {
@@ -410,60 +430,6 @@ namespace Agent
                     SaveCachedPath(selectedPath);
                     MessageBox.Show("✅ Folder set as provisioning base successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-            }
-        }
-
-
-
-        // 🔹 Duplicate defPackage inside Packages/
-        private void btnDuplicatePackage_Click(object sender, EventArgs e)
-        {
-            if (string.IsNullOrEmpty(cachedFolderPath) || !Directory.Exists(cachedFolderPath))
-            {
-                MessageBox.Show("⚠ No cached folder found. Please download the provisioning folder first.", "Missing Folder", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (lstPending.SelectedItem == null)
-            {
-                MessageBox.Show("⚠ Please select a user from the pending list first.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            string selected = lstPending.SelectedItem.ToString(); // Format: userID::serialHash
-            string[] parts = selected.Split(new[] { "::" }, StringSplitOptions.None);
-            if (parts.Length != 2)
-            {
-                MessageBox.Show("Invalid format for selected user. Expected 'userID::serialHash'.", "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            string userHash = parts[1];
-
-            string packagesPath = Path.Combine(cachedFolderPath, "Packages");
-            string defPackagePath = Path.Combine(packagesPath, "ACMS");
-            string newPackagePath = Path.Combine(packagesPath, userHash);
-
-            if (!Directory.Exists(defPackagePath))
-            {
-                MessageBox.Show("❌ 'defPackage' folder not found inside Packages directory.", "Missing defPackage", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            if (Directory.Exists(newPackagePath))
-            {
-                MessageBox.Show($"⚠ A package named '{userHash}' already exists.", "Package Already Exists", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                CopyDirectory(defPackagePath, newPackagePath);
-                MessageBox.Show($"✅ defPackage duplicated as: {userHash}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"❌ Error duplicating folder:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

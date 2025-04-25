@@ -9,7 +9,6 @@
         private System.Windows.Forms.Button btnFetchTasks;
         private System.Windows.Forms.Button btnCreateProvisioning;
         private System.Windows.Forms.Button btnDownloadTemplate;
-        private System.Windows.Forms.Button btnDuplicatePackage;
         private System.Windows.Forms.Button btnClearProvisioned;
         private System.Windows.Forms.Button btnFetchAllProvisioned;
         private System.Windows.Forms.Label lblPending;
@@ -32,7 +31,6 @@
             btnFetchTasks = new Button();
             btnCreateProvisioning = new Button();
             btnDownloadTemplate = new Button();
-            btnDuplicatePackage = new Button();
             btnClearProvisioned = new Button();
             btnFetchAllProvisioned = new Button();
             lblPending = new Label();
@@ -113,19 +111,6 @@
             btnDownloadTemplate.Text = "Select Provisioning Folder";
             btnDownloadTemplate.UseVisualStyleBackColor = false;
             btnDownloadTemplate.Click += btnDownloadTemplate_Click;
-            // 
-            // btnDuplicatePackage
-            // 
-            btnDuplicatePackage.Anchor = AnchorStyles.None;
-            btnDuplicatePackage.BackColor = Color.LightCyan;
-            btnDuplicatePackage.Font = new Font("SimSun", 9F, FontStyle.Bold);
-            btnDuplicatePackage.Location = new Point(77, 679);
-            btnDuplicatePackage.Name = "btnDuplicatePackage";
-            btnDuplicatePackage.Size = new Size(400, 35);
-            btnDuplicatePackage.TabIndex = 7;
-            btnDuplicatePackage.Text = "Duplicate Package Folder";
-            btnDuplicatePackage.UseVisualStyleBackColor = false;
-            btnDuplicatePackage.Click += btnDuplicatePackage_Click;
             // 
             // btnClearProvisioned
             // 
@@ -211,7 +196,6 @@
             mainPanel.Controls.Add(btnFetchTasks);
             mainPanel.Controls.Add(btnCreateProvisioning);
             mainPanel.Controls.Add(btnDownloadTemplate);
-            mainPanel.Controls.Add(btnDuplicatePackage);
             mainPanel.Controls.Add(btnClearProvisioned);
             mainPanel.Controls.Add(btnFetchAllProvisioned);
             mainPanel.Controls.Add(txtCommandOutput);

@@ -4,20 +4,52 @@ using System.IO;
 using System.Management;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace DeviceInfoApp
 {
     public partial class Form1 : Form
 
     {
+        // Drag Windows without borderBar
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        private const int WM_NCLBUTTONDOWN = 0xA1;
+        private const int HTCAPTION = 0x2;
+
+
+        private void EnableDrag(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    ReleaseCapture();
+                    SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                }
+            };
+        }
         public Form1()
         {
             InitializeComponent();
+            this.Icon = new Icon("Resources\\HPLogo.ico");
+
+
+            EnableDrag(this); // Makes the whole form draggable
+
+            // OR just make a specific panel draggable:
+            EnableDrag(mainPanel); // If you only want the panel to act as a title bar
         }
 
         private async void btnFetchInfo_Click(object sender, EventArgs e)
@@ -37,6 +69,9 @@ namespace DeviceInfoApp
             string deviceID = serialNumber;
             string uniqueID = ApiHelper.GenerateSHA256Hash(serialNumber);
             string userID = $"{Environment.UserName}@{Environment.MachineName}";
+            //string organization = "Company Team Remote IT";
+            //string email = "support@trt.com";
+
             string organization = "Company A";
             string email = "support@companya.com";
 
@@ -141,7 +176,7 @@ namespace DeviceInfoApp
              * 
             try
             {
-                return "Device123"; // Replace with actual serial retrieval logic
+                return "SG56YUI"; // Replace with actual serial retrieval logic
             }
             catch (Exception ex)
             {
@@ -152,7 +187,7 @@ namespace DeviceInfoApp
             // Actual serial logic
 
             */
-             try
+            try
             {
                 ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS");
                 foreach (ManagementObject obj in searcher.Get())
