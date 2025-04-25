@@ -4,19 +4,52 @@ using System.IO;
 using System.Management;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace DeviceInfoApp
 {
     public partial class Form1 : Form
+
     {
+        // Drag Windows without borderBar
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        private const int WM_NCLBUTTONDOWN = 0xA1;
+        private const int HTCAPTION = 0x2;
+
+
+        private void EnableDrag(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    ReleaseCapture();
+                    SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                }
+            };
+        }
         public Form1()
         {
             InitializeComponent();
+            this.Icon = new Icon("Resources\\HPLogo.ico");
+
+
+            EnableDrag(this); // Makes the whole form draggable
+
+            // OR just make a specific panel draggable:
+            EnableDrag(mainPanel); // If you only want the panel to act as a title bar
         }
 
         private async void btnFetchInfo_Click(object sender, EventArgs e)
@@ -36,6 +69,9 @@ namespace DeviceInfoApp
             string deviceID = serialNumber;
             string uniqueID = ApiHelper.GenerateSHA256Hash(serialNumber);
             string userID = $"{Environment.UserName}@{Environment.MachineName}";
+            //string organization = "Company Team Remote IT";
+            //string email = "support@trt.com";
+
             string organization = "Company A";
             string email = "support@companya.com";
 
@@ -134,7 +170,10 @@ namespace DeviceInfoApp
 
         // 🔹 Get System Serial Number
         private string GetSerialNumber()
-        {   
+        {
+
+            /*
+             * 
             try
             {
                 return "SG56YUI"; // Replace with actual serial retrieval logic
@@ -143,12 +182,12 @@ namespace DeviceInfoApp
             {
                 MessageBox.Show($"Error fetching serial number: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
-            } 
-            
+            }
+
             // Actual serial logic
 
-            /*
-             try
+            */
+            try
             {
                 ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS");
                 foreach (ManagementObject obj in searcher.Get())
@@ -160,15 +199,16 @@ namespace DeviceInfoApp
             {
                 MessageBox.Show($"Error fetching serial number: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            return "Unknown"; */
+            return "Unknown";
 
         }
 
         // 🔹 Get Local IP Address
         private string GetLocalIPAddress()
         {
+            /*
             try
-            {
+            {   
                 return "192.168.1.100"; // Replace with actual IP retrieval logic
             }
             catch (Exception ex)
@@ -176,30 +216,31 @@ namespace DeviceInfoApp
                 MessageBox.Show($"Error fetching IP Address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "Unknown";
             }
+            */
 
-         // Actual ip fetcher
-         /* try
-            {
-                string localIP = "Unknown";
-                var host = Dns.GetHostEntry(Dns.GetHostName());
+            // Actual ip fetcher
+            try
+               {
+                   string localIP = "Unknown";
+                   var host = Dns.GetHostEntry(Dns.GetHostName());
 
-                foreach (var ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    {
-                        localIP = ip.ToString();
-                        break;
-                    }
-                }
+                   foreach (var ip in host.AddressList)
+                   {
+                       if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                       {
+                           localIP = ip.ToString();
+                           break;
+                       }
+                   }
 
-                return localIP;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return "Unknown";
+                   return localIP;
+               }
+               catch (Exception ex)
+               {
+                   MessageBox.Show($"Error fetching IP address: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   return "Unknown";
 
-            }   */
+               }   
 
         }
 
@@ -292,6 +333,7 @@ namespace DeviceInfoApp
             if (alreadyProvisioned)
             {
                 txtCommandOutput.AppendText("⚠ Already provisioned. Running re-provision (_M)...\r\n");
+
                 string run_M = $"cd /d {workingDir} && \"{provisioningAppPath}\" -i AIM-T-CRYPTO_ACMS_M >> \"{logFilePath}\" 2>&1";
                 RunCommandAsAdmin(selectedDirectory, run_M);
                 txtCommandOutput.AppendText("✅ Re-provisioning complete. Restart required.\r\n");
@@ -407,7 +449,14 @@ namespace DeviceInfoApp
             public string UniqueId { get; set; }
         }
 
+        private void mainPanel_Paint(object sender, PaintEventArgs e)
+        {
 
+        }
 
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
     }
 }
