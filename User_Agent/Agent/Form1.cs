@@ -69,11 +69,11 @@ namespace DeviceInfoApp
             string deviceID = serialNumber;
             string uniqueID = ApiHelper.GenerateSHA256Hash(serialNumber);
             string userID = $"{Environment.UserName}@{Environment.MachineName}";
-            //string organization = "Company Team Remote IT";
-            //string email = "support@trt.com";
+            string organization = "Company Team Remote IT";
+            string email = "support@trt.com";
 
-            string organization = "Company A";
-            string email = "support@companya.com";
+            //string organization = "Company A";
+            //string email = "support@companya.com";
 
             bool proceedToProvisioning = false;
 
