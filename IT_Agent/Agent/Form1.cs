@@ -311,92 +311,96 @@ namespace Agent
             }
         }
 
-        private async void btnCreateProvisioning_Click(object sender, EventArgs e)
+        private async void HandleProvisioningUpload()
         {
             if (lstPending.SelectedItem == null)
             {
-                MessageBox.Show("Please select a device from the pending list.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("⚠ Please select a user from the pending list.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            string selected = lstPending.SelectedItem.ToString(); // Format: userID::serialHash
+            string selected = lstPending.SelectedItem.ToString(); // userID::hash
             string[] parts = selected.Split(new[] { "::" }, StringSplitOptions.None);
             if (parts.Length != 2)
             {
-                MessageBox.Show("Invalid task format. Expected: userID::serialHash", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("⚠ Invalid format. Expected: userID::hash", "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string serialHash = parts[1];
-            string packagesPath = Path.Combine(cachedFolderPath, "Packages");
-            string defPackagePath = Path.Combine(packagesPath, "ACMS");
-            string userPackagePath = Path.Combine(packagesPath, serialHash);
+            string userHash = parts[1];
 
-            // Duplicate defPackage if needed
-            try
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                if (!Directory.Exists(defPackagePath))
+                dialog.Description = "Select the package folder to duplicate (e.g., ACMS)";
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                string selectedPackage = dialog.SelectedPath;
+                string packagesDir = Path.GetDirectoryName(selectedPackage)!;
+                string newPackagePath = Path.Combine(packagesDir, userHash);
+
+                try
                 {
-                    MessageBox.Show("❌ 'ACMS' base package not found inside Packages.", "Missing Base Package", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
+                    // Copy and rename
+                    if (Directory.Exists(newPackagePath))
+                    {
+                        MessageBox.Show("⚠ A folder with this hash already exists. Aborting.");
+                        return;
+                    }
+
+                    CopyDirectory(selectedPackage, newPackagePath);
+                    txtCommandOutput.AppendText($"✅ Duplicated folder to: {newPackagePath}\r\n");
+
+                    // Rename all 3 AIM-T-CRYPTO files inside
+                    foreach (string file in Directory.GetFiles(newPackagePath, "AIM-T-CRYPTO_*_*"))
+                    {
+                        string suffix = file.Split('_').Last(); // e.g., M, oMt, oT
+                        string newName = $"AIM-T-CRYPTO_{userHash}_{suffix}";
+                        string newPath = Path.Combine(newPackagePath, newName);
+                        File.Move(file, newPath);
+                        txtCommandOutput.AppendText($"🔄 Renamed: {Path.GetFileName(file)} → {newName}\r\n");
+                    }
+
+                    // Zip it
+                    string zipFileName = $"{userHash}_ProvisioningFiles.zip";
+                    string zipDir = Path.Combine(packagesDir, "..", "Zipped");
+                    string zipPath = Path.Combine(zipDir, zipFileName);
+                    Directory.CreateDirectory(zipDir);
+                    if (File.Exists(zipPath)) File.Delete(zipPath);
+
+                    ZipFile.CreateFromDirectory(newPackagePath, zipPath);
+                    txtCommandOutput.AppendText($"📦 Zipped to: {zipPath}\r\n");
+
+                    // Upload to S3
+                    var putRequest = new PutObjectRequest
+                    {
+                        BucketName = config.s3_bucket,
+                        Key = $"users/{zipFileName}",
+                        FilePath = zipPath,
+                        ContentType = "application/zip"
+                    };
+
+                    await s3Client.PutObjectAsync(putRequest);
+                    txtCommandOutput.AppendText($"☁ Uploaded to S3: users/{zipFileName}\r\n");
+
+                    // Update tracking
+                    lstPending.Items.Remove(selected);
+                    if (!zippedHashes.Contains(userHash))
+                    {
+                        zippedHashes.Add(userHash);
+                        File.AppendAllLines(zippedDevicesPath, new[] { userHash });
+                    }
                 }
-
-                if (Directory.Exists(userPackagePath))
+                catch (Exception ex)
                 {
-                    txtCommandOutput?.AppendText($"⚠ Folder '{serialHash}' already exists. Skipping duplication.\r\n");
-                }
-                else
-                {
-                    CopyDirectory(defPackagePath, userPackagePath);
-                    txtCommandOutput?.AppendText($"✅ defPackage duplicated as: {serialHash}\r\n");
+                    MessageBox.Show($"❌ Error: {ex.Message}", "Provisioning Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"❌ Error duplicating package:\n{ex.Message}", "Duplication Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+        }
 
-            // Proceed with zip and upload
-            string zipFileName = $"{serialHash}_ProvisioningFiles.zip";
-            string zipPath = Path.Combine(cachedFolderPath, "Zipped", zipFileName);
-            Directory.CreateDirectory(Path.GetDirectoryName(zipPath)!);
 
-            try
-            {
-                if (File.Exists(zipPath)) File.Delete(zipPath);
-                ZipFile.CreateFromDirectory(userPackagePath, zipPath);
-
-                MessageBox.Show($"✅ Zip created: {zipPath}", "Zipped Successfully", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                var putRequest = new PutObjectRequest
-                {
-                    BucketName = config.s3_bucket,
-                    Key = $"users/{zipFileName}",
-                    FilePath = zipPath,
-                    ContentType = "application/zip"
-                };
-
-                await s3Client.PutObjectAsync(putRequest);
-
-                MessageBox.Show($"✅ Zip uploaded to S3:\nusers/{zipFileName}", "Upload Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                lstPending.Items.Remove(selected);
-
-                if (!zippedHashes.Contains(serialHash))
-                {
-                    zippedHashes.Add(serialHash);
-                    File.AppendAllLines(zippedDevicesPath, new[] { serialHash });
-                }
-            }
-            catch (AmazonS3Exception s3Ex)
-            {
-                MessageBox.Show($"❌ AWS S3 Error:\n{s3Ex.Message}", "S3 Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"❌ General Error:\n{ex.Message}", "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+        private void btnCreateProvisioning_Click(object sender, EventArgs e)
+        {
+            HandleProvisioningUpload();
         }
 
 
@@ -407,31 +411,6 @@ namespace Agent
             btnCreateProvisioning.Enabled = lstPending.SelectedItem != null;
         }
 
-
-
-        // 🔹  Download Default Provisioning Folder from S3
-        private void btnDownloadTemplate_Click(object sender, EventArgs e)
-        {
-            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
-            {
-                dialog.Description = "Select your custom provisioning base folder (the one containing 'Packages')";
-
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    string selectedPath = dialog.SelectedPath;
-                    string packagesPath = Path.Combine(selectedPath, "Packages");
-
-                    if (!Directory.Exists(packagesPath))
-                    {
-                        MessageBox.Show("❌ Selected folder does not contain a 'Packages' subfolder.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    SaveCachedPath(selectedPath);
-                    MessageBox.Show("✅ Folder set as provisioning base successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-        }
 
 
         private void CopyDirectory(string sourceDir, string destDir)

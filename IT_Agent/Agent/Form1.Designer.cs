@@ -8,7 +8,6 @@
         private RoundedListBox lstProvisioned;
         private System.Windows.Forms.Button btnFetchTasks;
         private System.Windows.Forms.Button btnCreateProvisioning;
-        private System.Windows.Forms.Button btnDownloadTemplate;
         private System.Windows.Forms.Button btnClearProvisioned;
         private System.Windows.Forms.Button btnFetchAllProvisioned;
         private System.Windows.Forms.Label lblPending;
@@ -30,7 +29,6 @@
             lstProvisioned = new RoundedListBox();
             btnFetchTasks = new Button();
             btnCreateProvisioning = new Button();
-            btnDownloadTemplate = new Button();
             btnClearProvisioned = new Button();
             btnFetchAllProvisioned = new Button();
             lblPending = new Label();
@@ -99,18 +97,6 @@
             btnCreateProvisioning.UseVisualStyleBackColor = false;
             btnCreateProvisioning.Click += btnCreateProvisioning_Click;
             // 
-            // btnDownloadTemplate
-            // 
-            btnDownloadTemplate.Anchor = AnchorStyles.None;
-            btnDownloadTemplate.BackColor = Color.LightCyan;
-            btnDownloadTemplate.Font = new Font("SimSun", 9F, FontStyle.Bold);
-            btnDownloadTemplate.Location = new Point(77, 622);
-            btnDownloadTemplate.Name = "btnDownloadTemplate";
-            btnDownloadTemplate.Size = new Size(400, 35);
-            btnDownloadTemplate.TabIndex = 8;
-            btnDownloadTemplate.Text = "Select Provisioning Folder";
-            btnDownloadTemplate.UseVisualStyleBackColor = false;
-            btnDownloadTemplate.Click += btnDownloadTemplate_Click;
             // 
             // btnClearProvisioned
             // 
@@ -195,7 +181,6 @@
             mainPanel.Controls.Add(lstProvisioned);
             mainPanel.Controls.Add(btnFetchTasks);
             mainPanel.Controls.Add(btnCreateProvisioning);
-            mainPanel.Controls.Add(btnDownloadTemplate);
             mainPanel.Controls.Add(btnClearProvisioned);
             mainPanel.Controls.Add(btnFetchAllProvisioned);
             mainPanel.Controls.Add(txtCommandOutput);
